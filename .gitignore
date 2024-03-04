@@ -6,6 +6,7 @@ __pycache__/
 test.*
 *.code-workspace
 kodim*.*
+data/*
 # C extensions
 *.so
 
