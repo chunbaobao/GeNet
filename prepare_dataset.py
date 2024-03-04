@@ -36,7 +36,7 @@ def check_file_exists(path, dataset: str):
         print("{} superpixels already extracted".format(dataset))
         return True
     else:
-        print("Extracting superpixels for {}".format(dataset.upper()))
+        print("Extracting superpixels for {}".format(dataset))
         return False
 
 
@@ -204,14 +204,11 @@ def process_image(params):
     channel_axis = 2 if len(img.shape) > 2 else None
 
     # number of actually extracted superpixels (can be different from requested in SLIC)
-    n_sp_extracted = n_sp + 1
     # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
-    while n_sp_extracted > n_sp:
-        superpixels = slic(img, n_segments=n_sp_query, compactness=compactness,
+    superpixels = slic(img, n_segments=n_sp, compactness=compactness,
                            channel_axis=channel_axis, start_label=0)
-        sp_indices = np.unique(superpixels)
-        n_sp_extracted = len(sp_indices)
-        n_sp_query -= 1  # reducing the number of superpixels until we get <= n superpixels
+    sp_indices = np.unique(superpixels)
+    n_sp_extracted = len(sp_indices)
 
     assert n_sp_extracted == np.max(superpixels) + 1, ('superpixel indices', np.unique(superpixels))
 
@@ -237,6 +234,7 @@ def process_image(params):
         sp_coord.append(cntr)  # ! avg position
     sp_intensity = np.array(sp_intensity, np.float32)
     sp_coord = np.array(sp_coord, np.float32)
+    
 
     return sp_intensity, sp_coord, sp_order, superpixels
 
@@ -255,8 +253,8 @@ class Image2Graph(torch.utils.data.Dataset):
         self.graph_lists = []
         self.valid_split = valid_split
         self.out_dir = out_dir
-        print("process %s to superpixels using slic algorithm" (dataset_name))
-        if dataset_name == 'fashionminst':
+        print("process %s dataset to superpixels using slic algorithm" % (dataset_name))
+        if dataset_name == 'fashionmnist':
             self.img_size = 28
             n_sp = 95
             compactness = .25
@@ -268,7 +266,7 @@ class Image2Graph(torch.utils.data.Dataset):
                 self.sp_data = pool.map(
                     process_image, [(images[i], n_sp, compactness, True) for i in range(n_images)])
             self.graph_labels = torch.LongTensor(labels)
-        elif dataset == 'cifar10':
+        elif dataset_name == 'cifar10':
             n_sp = 150
             compactness = 10
             self.img_size = 32
@@ -381,7 +379,7 @@ class Image2Graph(torch.utils.data.Dataset):
 
     def creat_pkl(self):
         self.split_dataset()
-        print("Saving dataset to %s" % self.dataset_name+".pkl")
+        print("saving dataset to %s" % self.dataset_name+".pkl")
         with open(self.out_dir+self.name+'.pkl', 'wb') as f:
             pickle.dump([self.train, self.valid], f)
 

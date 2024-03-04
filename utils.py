@@ -3,12 +3,9 @@ import os
 import torch
 
 def gpu_setup(use_gpu, gpu_id):
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)  
-
     if torch.cuda.is_available() and use_gpu:
-        print('cuda available with GPU:',torch.cuda.get_device_name(0))
-        device = torch.device("cuda")
+        device = torch.device(f'cuda:{gpu_id}')
+        print('cuda available with GPU:',torch.cuda.get_device_name(gpu_id))
     else:
         print('cuda not available')
         device = torch.device("cpu")
