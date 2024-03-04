@@ -124,7 +124,7 @@ def self_loop(g):
 
         This function is called inside a function in SuperPixDataset class.
     """
-    new_g = dgl.DGLGraph()
+    new_g = dgl.graph([])
     new_g.add_nodes(g.number_of_nodes())
     new_g.ndata['feat'] = g.ndata['feat']
 
@@ -158,7 +158,6 @@ class SuperPixDataset(torch.utils.data.Dataset):  # load from pkl file
             self.train = f[0]
             self.val = f[1]
         print('train, test, val sizes :', len(self.train), len(self.test), len(self.val))
-        print("[I] Finished loading.")
         print("[I] Data load time: {:.4f}s".format(time.time()-start))
 
     # form a mini batch from a given list of samples = [(graph, label) pairs]
@@ -376,8 +375,8 @@ class Image2Graph(torch.utils.data.Dataset):
     def split_dataset(self):
         valid_split = self.valid_split
         train_idx, valid_idx = split_dataset(self.graph_labels, valid_split)
-        train = DGLFormDataset([self.graph_lists[i] for i in train_idx], [self.graph_labels[i] for i in train_idx])
-        valid = DGLFormDataset([self.graph_lists[i] for i in valid_idx], [self.graph_labels[i] for i in valid_idx])
+        self.train = DGLFormDataset([self.graph_lists[i] for i in train_idx], [self.graph_labels[i] for i in train_idx])
+        self.valid = DGLFormDataset([self.graph_lists[i] for i in valid_idx], [self.graph_labels[i] for i in valid_idx])
         
 
     def creat_pkl(self):

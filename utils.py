@@ -14,15 +14,14 @@ def gpu_setup(use_gpu, gpu_id):
         device = torch.device("cpu")
     return device
 
-def view_model_param(MODEL_NAME, net_params):
-    model = gnn_model(MODEL_NAME, net_params)
+def view_model_param(model_name, model):
     total_param = 0
     print("MODEL DETAILS:\n")
     #print(model)
     for param in model.parameters():
         # print(param.data.size())
         total_param += np.prod(list(param.data.size()))
-    print('MODEL/Total parameters:', MODEL_NAME, total_param)
+    print('MODEL/Total parameters:', model_name, total_param)
     return total_param
 
 def split_dataset(labels, valid_split=0.1):
