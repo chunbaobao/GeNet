@@ -1,5 +1,29 @@
 import numpy as np
+import os
+import torch
 
+def gpu_setup(use_gpu, gpu_id):
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)  
+
+    if torch.cuda.is_available() and use_gpu:
+        print('cuda available with GPU:',torch.cuda.get_device_name(0))
+        device = torch.device("cuda")
+    else:
+        print('cuda not available')
+        device = torch.device("cpu")
+    return device
+
+def view_model_param(MODEL_NAME, net_params):
+    model = gnn_model(MODEL_NAME, net_params)
+    total_param = 0
+    print("MODEL DETAILS:\n")
+    #print(model)
+    for param in model.parameters():
+        # print(param.data.size())
+        total_param += np.prod(list(param.data.size()))
+    print('MODEL/Total parameters:', MODEL_NAME, total_param)
+    return total_param
 
 def split_dataset(labels, valid_split=0.1):
     idx = np.random.permutation(len(labels))

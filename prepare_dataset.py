@@ -17,7 +17,6 @@ import multiprocessing as mp
 import scipy.ndimage
 import scipy.spatial
 import argparse
-import datetime
 import dgl
 from scipy.spatial.distance import cdist
 from utils import split_dataset
@@ -153,12 +152,11 @@ class SuperPixDataset(torch.utils.data.Dataset):  # load from pkl file
         start = time.time()
         print("[I] Loading dataset %s..." % (name))
         self.name = name
-        data_dir = 'data/superpixels/'
+        data_dir = 'data'
         with open(data_dir+name+'.pkl', "rb") as f:
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]
-            self.test = f[2]
         print('train, test, val sizes :', len(self.train), len(self.test), len(self.val))
         print("[I] Finished loading.")
         print("[I] Data load time: {:.4f}s".format(time.time()-start))
@@ -249,13 +247,16 @@ class Image2Graph(torch.utils.data.Dataset):
                  dataset_dir,
                  out_dir,
                  dataset_name,
-                 num_val,
+                 valid_split= 0.1,
                  use_mean_px=True,
                  use_coord=True):
-
+        
+        
+        self.dataset_name = dataset_name
         self.graph_lists = []
-        self.num_val = num_val
+        self.valid_split = valid_split
         self.out_dir = out_dir
+        print("process %s to superpixels using slic algorithm" (dataset_name))
         if dataset_name == 'fashionminst':
             self.img_size = 28
             n_sp = 95
@@ -280,6 +281,18 @@ class Image2Graph(torch.utils.data.Dataset):
                 self.sp_data = pool.map(
                     process_image, [(images[i], n_sp, compactness, True) for i in range(n_images)])
             self.graph_labels = torch.LongTensor(self.labels)
+        elif dataset_name == 'mnist':
+            self.img_size = 28
+            n_sp = 95
+            compactness = .25
+            dataset = datasets.MNIST(root=dataset_dir, train=True, download=False)
+            images = dataset.data.numpy()
+            labels = dataset.targets
+            n_images = len(dataset)
+            with mp.Pool() as pool:
+                self.sp_data = pool.map(
+                    process_image, [(images[i], n_sp, compactness, True) for i in range(n_images)])
+            self.graph_labels = torch.LongTensor(labels)
         else:
             raise Exception("Unknown dataset")
         self.use_mean_px = use_mean_px
@@ -361,10 +374,17 @@ class Image2Graph(torch.utils.data.Dataset):
         return self.graph_lists[idx], self.graph_labels[idx]
 
     def split_dataset(self):
-        val_num = self.num_val
+        valid_split = self.valid_split
+        train_idx, valid_idx = split_dataset(self.graph_labels, valid_split)
+        train = DGLFormDataset([self.graph_lists[i] for i in train_idx], [self.graph_labels[i] for i in train_idx])
+        valid = DGLFormDataset([self.graph_lists[i] for i in valid_idx], [self.graph_labels[i] for i in valid_idx])
+        
 
     def creat_pkl(self):
         self.split_dataset()
+        print("Saving dataset to %s" % self.dataset_name+".pkl")
+        with open(self.out_dir+self.name+'.pkl', 'wb') as f:
+            pickle.dump([self.train, self.valid], f)
 
 
 def main():
@@ -379,13 +399,20 @@ def main():
         name = 'fashionmnist'
         if not check_file_exists(args.out_dir, name):
 
-            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 5000)
-
+            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
+            image2graph.creat_pkl()
+            
     if args.dataset == 'cifar10' or args.dataset == 'all':
         name = 'cifar10'
         if not check_file_exists(args.out_dir, name):
-            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 5000)
-
+            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
+            image2graph.creat_pkl()
+            
+    if args.datase == 'mnist' or args.dataset == 'all':
+        name = 'mnist'
+        if not check_file_exists(args.out_dir, name):
+            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
+            image2graph.creat_pkl()
 
 if __name__ == '__main__':
     main()
