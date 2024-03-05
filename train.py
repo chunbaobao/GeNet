@@ -12,19 +12,27 @@ from torchvision import datasets
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
-from utils import view_model_param, gpu_setup
+from utils import view_model_param, gpu_setup ,set_seed
 from torch.nn.parallel import DataParallel
 from prepare_dataset import SuperPixDataset
 import numpy as np
+from channel import Channel
 
-def set_seed(seed):
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
+
+def config_parser():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--channel', default='AWGN', type=str,
+                        choices=['AWGN', 'Rayleigh'], help='channel type')
+    parser.add_argument('--out', default='./out', type=str, help='saved_path')
+    parser.add_argument('--dataset_dir')
+    parser.add_argument('--snr_list', default=['19', '13',
+                        '7', '4', '1'], nargs='+', help='snr_list')
+    parser.add_argument('--model', default='gcn', type=str,
+                        choices=['gcn', 'gat', 'gatedgnc', 'graphsage', 'mlp'], help='model select')
+
+    return parser.parse_args()
 
 
 def main():

@@ -19,24 +19,15 @@ import scipy.spatial
 import argparse
 import dgl
 from scipy.spatial.distance import cdist
-from utils import split_dataset
-
-
-def set_seed(seed):
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+from utils import split_dataset, set_seed
 
 
 def check_file_exists(path, dataset: str):
     if os.path.isfile(os.path.join(path, dataset+'.pkl')):
-        print("{} superpixels already extracted".format(dataset))
+        print("[I] {} superpixels already extracted".format(dataset))
         return True
     else:
-        print("Extracting superpixels for {}".format(dataset))
+        print("[I] Extracting superpixels for {}".format(dataset))
         return False
 
 
@@ -196,7 +187,7 @@ def config_parser():
 # refers to extract_superpixels.py
 def process_image(params):
 
-    img, n_sp, compactness, shuffle = params
+    img, n_sp, compactness, shuffle, index = params
 
     assert img.dtype == np.uint8, img.dtype
     img = (img / 255.).astype(np.float32)
@@ -206,7 +197,7 @@ def process_image(params):
     # number of actually extracted superpixels (can be different from requested in SLIC)
     # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
     superpixels = slic(img, n_segments=n_sp, compactness=compactness,
-                           channel_axis=channel_axis, start_label=0)
+                       channel_axis=channel_axis, start_label=0)
     sp_indices = np.unique(superpixels)
     n_sp_extracted = len(sp_indices)
 
@@ -234,7 +225,10 @@ def process_image(params):
         sp_coord.append(cntr)  # ! avg position
     sp_intensity = np.array(sp_intensity, np.float32)
     sp_coord = np.array(sp_coord, np.float32)
-    
+    is_print = False
+    if is_print:
+        print('image={}/{}, shape={}, min={:.2f}, max={:.2f}, n_sp={}'.format(index + 1, 60000, img.shape,
+                                                                          img.min(), img.max(), sp_intensity.shape[0]))
 
     return sp_intensity, sp_coord, sp_order, superpixels
 
@@ -244,59 +238,50 @@ class Image2Graph(torch.utils.data.Dataset):
                  dataset_dir,
                  out_dir,
                  dataset_name,
-                 valid_split= 0.1,
+                 valid_split=0.1,
                  use_mean_px=True,
                  use_coord=True):
-        
-        
+
         self.dataset_name = dataset_name
         self.graph_lists = []
         self.valid_split = valid_split
         self.out_dir = out_dir
-        print("process %s dataset to superpixels using slic algorithm" % (dataset_name))
+        print("processing %s dataset to superpixels using slic algorithm..." % (dataset_name))
         if dataset_name == 'fashionmnist':
             self.img_size = 28
             n_sp = 95
             compactness = .25
             dataset = datasets.FashionMNIST(root=dataset_dir, train=True, download=False)
-            images = dataset.data.numpy()
-            labels = dataset.targets
-            n_images = len(dataset)
-            with mp.Pool() as pool:
-                self.sp_data = pool.map(
-                    process_image, [(images[i], n_sp, compactness, True) for i in range(n_images)])
-            self.graph_labels = torch.LongTensor(labels)
+
         elif dataset_name == 'cifar10':
             n_sp = 150
             compactness = 10
             self.img_size = 32
             dataset = datasets.CIFAR10(root=dataset_dir, train=True, download=False)
-            images = dataset.data.numpy()
-            labels = dataset.targets
-            n_images = len(dataset)
-            with mp.Pool() as pool:
-                self.sp_data = pool.map(
-                    process_image, [(images[i], n_sp, compactness, True) for i in range(n_images)])
-            self.graph_labels = torch.LongTensor(self.labels)
+
         elif dataset_name == 'mnist':
             self.img_size = 28
             n_sp = 95
             compactness = .25
             dataset = datasets.MNIST(root=dataset_dir, train=True, download=False)
-            images = dataset.data.numpy()
-            labels = dataset.targets
-            n_images = len(dataset)
-            with mp.Pool() as pool:
-                self.sp_data = pool.map(
-                    process_image, [(images[i], n_sp, compactness, True) for i in range(n_images)])
-            self.graph_labels = torch.LongTensor(labels)
+
         else:
             raise Exception("Unknown dataset")
+
+
+        images = dataset.data.numpy() if isinstance(dataset.data, torch.Tensor) else dataset.data
+        labels = dataset.targets
+        n_images = len(dataset)
+        with mp.Pool() as pool:
+            self.sp_data = pool.map(
+                process_image, [(images[i], n_sp, compactness, True, i) for i in range(n_images)])
+        self.graph_labels = torch.LongTensor(labels)
+
         self.use_mean_px = use_mean_px
         self.use_coord = use_coord
-        self.n_samples = len(self.labels)
+        self.n_samples = len(self.graph_labels)
 
-        print("preparing %d graphs for the %s date..." % (self.n_samples, dataset_name))
+        print("calculating %d graphs for the %s dateset..." % (self.n_samples, dataset_name))
         self._prepare()
 
     def _prepare(self):
@@ -373,14 +358,15 @@ class Image2Graph(torch.utils.data.Dataset):
     def split_dataset(self):
         valid_split = self.valid_split
         train_idx, valid_idx = split_dataset(self.graph_labels, valid_split)
-        self.train = DGLFormDataset([self.graph_lists[i] for i in train_idx], [self.graph_labels[i] for i in train_idx])
-        self.valid = DGLFormDataset([self.graph_lists[i] for i in valid_idx], [self.graph_labels[i] for i in valid_idx])
-        
+        self.train = DGLFormDataset([self.graph_lists[i] for i in train_idx], [
+                                    self.graph_labels[i] for i in train_idx])
+        self.valid = DGLFormDataset([self.graph_lists[i] for i in valid_idx], [
+                                    self.graph_labels[i] for i in valid_idx])
 
     def creat_pkl(self):
         self.split_dataset()
         print("saving dataset to %s" % self.dataset_name+".pkl")
-        with open(self.out_dir+self.name+'.pkl', 'wb') as f:
+        with open(self.out_dir + '/' + self.dataset_name+'.pkl', 'wb') as f:
             pickle.dump([self.train, self.valid], f)
 
 
@@ -398,18 +384,19 @@ def main():
 
             image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
             image2graph.creat_pkl()
-            
+
     if args.dataset == 'cifar10' or args.dataset == 'all':
         name = 'cifar10'
         if not check_file_exists(args.out_dir, name):
             image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
             image2graph.creat_pkl()
-            
+
     if args.datase == 'mnist' or args.dataset == 'all':
         name = 'mnist'
         if not check_file_exists(args.out_dir, name):
             image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
             image2graph.creat_pkl()
+
 
 if __name__ == '__main__':
     main()
