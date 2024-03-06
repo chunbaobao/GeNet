@@ -72,8 +72,12 @@ def compute_edges_list(A, kth=8+1):
     new_kth = num_nodes - kth
 
     if num_nodes > 9:
-        knns = np.argpartition(A, new_kth-1, axis=-1)[:, new_kth:-1]
-        knn_values = np.partition(A, new_kth-1, axis=-1)[:, new_kth:-1]  # NEW
+        # ? wrong implement before
+        # refers to https://github.com/graphdeeplearning/benchmarking-gnns/issues/17
+        # knns = np.argpartition(A, new_kth-1, axis=-1)[:, new_kth:-1]
+        # knn_values = np.partition(A, new_kth-1, axis=-1)[:, new_kth:-1]  # NEW
+        knns = np.argpartition(A, new_kth, axis=-1)[:, new_kth+1:] 
+        knn_values = np.partition(A, new_kth, axis=-1)[:, new_kth+1:]  
     else:
         # handling for graphs with less than kth nodes
         # in such cases, the resulting graph will be fully connected
@@ -133,8 +137,8 @@ def self_loop(g):
     return new_g
 
 
-# ! need to
-class SuperPixDataset(torch.utils.data.Dataset):  # load from pkl file
+
+class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
 
     def __init__(self, name):
         """
@@ -143,13 +147,26 @@ class SuperPixDataset(torch.utils.data.Dataset):  # load from pkl file
         start = time.time()
         print("[I] Loading dataset %s..." % (name))
         self.name = name
-        data_dir = 'data'
+        data_dir = './data/'
         with open(data_dir+name+'.pkl', "rb") as f:
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]
-        print('train, test, val sizes :', len(self.train), len(self.test), len(self.val))
+        print('train, val sizes :', len(self.train), len(self.val))
         print("[I] Data load time: {:.4f}s".format(time.time()-start))
+        
+    def _add_self_loops(self):
+        
+        # function for adding self loops
+        # this function will be called only if self_loop flag is True
+            
+        self.train.graph_lists = [self_loop(g) for g in self.train.graph_lists]
+        self.val.graph_lists = [self_loop(g) for g in self.val.graph_lists]
+        self.test.graph_lists = [self_loop(g) for g in self.test.graph_lists]
+        
+        self.train = DGLFormDataset(self.train.graph_lists, self.train.graph_labels)
+        self.val = DGLFormDataset(self.val.graph_lists, self.val.graph_labels)
+        self.test = DGLFormDataset(self.test.graph_lists, self.test.graph_labels)
 
     # form a mini batch from a given list of samples = [(graph, label) pairs]
 
@@ -239,8 +256,7 @@ class Image2Graph(torch.utils.data.Dataset):
                  out_dir,
                  dataset_name,
                  valid_split=0.1,
-                 use_mean_px=True,
-                 use_coord=True):
+                 use_mean_px=True):
 
         self.dataset_name = dataset_name
         self.graph_lists = []
@@ -278,7 +294,6 @@ class Image2Graph(torch.utils.data.Dataset):
         self.graph_labels = torch.LongTensor(labels)
 
         self.use_mean_px = use_mean_px
-        self.use_coord = use_coord
         self.n_samples = len(self.graph_labels)
 
         print("calculating %d graphs for the %s dateset..." % (self.n_samples, dataset_name))
@@ -332,7 +347,14 @@ class Image2Graph(torch.utils.data.Dataset):
             # adding edge features for Residual Gated ConvNet
             edge_feat_dim = g.ndata['feat'].shape[1]  # dim same as node feature dim
             #g.edata['feat'] = torch.ones(g.number_of_edges(), edge_feat_dim).half()
-            g.edata['feat'] = torch.Tensor(self.edge_features[index]).unsqueeze(1).half()  # NEW
+            try:
+                g.edata['feat'] = torch.Tensor(self.edge_features[index]).unsqueeze(1).half()  # NEW
+            except Exception as e:
+                print('index:', index,'self.edge_features[index].shape:',self.edge_features[index].shape,
+                      'num_edges:', g.num_edges(),'self.edges_lists[index].shape:', self.edges_lists[index].shape,
+                      'self.node_features[index].shape[0]:', self.node_features[index].shape[0],
+                      'self.edges_lists[index]',self.edges_lists[index])
+                raise e
 
             self.graph_lists.append(g)
 
@@ -391,7 +413,7 @@ def main():
             image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
             image2graph.creat_pkl()
 
-    if args.datase == 'mnist' or args.dataset == 'all':
+    if args.dataset == 'mnist' or args.dataset == 'all':
         name = 'mnist'
         if not check_file_exists(args.out_dir, name):
             image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
