@@ -25,10 +25,9 @@ def config_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--channel', default='AWGN', type=str,
                         choices=['AWGN', 'Rayleigh'], help='channel type')
-    parser.add_argument('--out', default='./out', type=str, help='saved_path')
-    parser.add_argument('--dataset_dir')
-    parser.add_argument('--snr_list', default=['19', '13',
-                        '7', '4', '1'], nargs='+', help='snr_list')
+    parser.add_argument('--out', default='./out', type=str, help='path of output')
+    parser.add_argument('--dataset_dir',default='./data', type=str, help='path of dataset')
+    parser.add_argument('--snr_list', default=['20','15','10','5','0'], nargs='+', help='snr_list')
     parser.add_argument('--model', default='gcn', type=str,
                         choices=['gcn', 'gat', 'gatedgnc', 'graphsage', 'mlp'], help='model select')
 

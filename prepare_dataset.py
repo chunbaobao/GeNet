@@ -355,7 +355,9 @@ class Image2Graph(torch.utils.data.Dataset):
                       'self.node_features[index].shape[0]:', self.node_features[index].shape[0],
                       'self.edges_lists[index]',self.edges_lists[index])
                 raise e
-
+            
+            # * NEW Implementation add reverse edges
+            g = dgl.add_reverse_edges(g,copy_ndata = True,copy_edata = True)             
             self.graph_lists.append(g)
 
     def __len__(self):
@@ -400,21 +402,14 @@ def main():
     if not os.path.isdir(args.out_dir):
         os.makedirs(args.out_dir)
 
-    if args.dataset == 'fashionmnist' or args.dataset == 'all':
-        name = 'fashionmnist'
-        if not check_file_exists(args.out_dir, name):
-
-            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
-            image2graph.creat_pkl()
-
-    if args.dataset == 'cifar10' or args.dataset == 'all':
-        name = 'cifar10'
-        if not check_file_exists(args.out_dir, name):
-            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
-            image2graph.creat_pkl()
-
-    if args.dataset == 'mnist' or args.dataset == 'all':
-        name = 'mnist'
+    if args.dataset == 'all':
+        names = ['fashionmnist','cifar10','mnist']
+    elif args.dataset not in  ['fashionmnist','cifar10','mnist']:
+        raise Exception("Unknown dataset")
+    else:
+        names = [args.dataset]
+        
+    for name in names:
         if not check_file_exists(args.out_dir, name):
             image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
             image2graph.creat_pkl()
