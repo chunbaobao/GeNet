@@ -7,8 +7,6 @@ Created on Tue Mar  17:00:00 2024
 import os
 import torch
 import torch.nn as nn
-from torchvision import transforms
-from torchvision import datasets
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
@@ -17,10 +15,10 @@ from prepare_dataset import SuperPixDataset, TestDataset
 import numpy as np
 from channel import Channel
 import time
-import random
 from tensorboardX import SummaryWriter
 from glob import glob
 from models.load_model import GeNet
+import time
 
 
 def train_epoch(model, optimizer, device, data_loader, epoch):
@@ -76,29 +74,26 @@ def config_parser():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', default='./out', type=str, help='path of output')
-    parser.add_argument('--dataset_dir', default='./data', type=str, help='path of dataset')
-    parser.add_argument('--snr_list', default=['20', '15',
-                        '10', '5', '0'], nargs='+', help='snr_list')
-    parser.add_argument('--model', default='gcn', type=str,
-                        choices=['gcn', 'gat', 'gatedgnc', 'mlp'], help='model select')
+    # parser.add_argument('--snr_list', default=['20', '15',
+    #                     '10', '5', '0'], nargs='+', help='snr_list')
+    # parser.add_argument('--model', default='gcn', type=str,
+    #                     choices=['gcn', 'gat', 'gatedgnc', 'mlp'], help='model select')
 
     return parser.parse_args()
 
 
-def train_pipeline(model_name, dataset_name, params, dirs):
+def train_pipeline(model_name, dataset_name, dirs):
     # """
     #     PARAMETERS
     # """
-
-    device = gpu_setup(True, 1)
+    if torch.cuda.device_count() > 1:
+        device = gpu_setup(True, 1)
+    elif torch.cuda.is_available():
+        device = gpu_setup(True, 0)
+    else:
+        device = gpu_setup(False, 0)
     n_heads = -1
     edge_feat = False
-    pseudo_dim_MoNet = -1
-    kernel = -1
-    gnn_per_block = -1
-    embedding_dim = -1
-    pool_ratio = -1
-    n_mlp_GIN = -1
     gated = False
     self_loop = False
     #self_loop = True
@@ -148,7 +143,7 @@ def train_pipeline(model_name, dataset_name, params, dirs):
         hidden_dim = 19
         out_dim = n_heads*hidden_dim
         dropout = 0.0
-        readout = 'mean'
+        readout = 'sum'
         print('True hidden dim:', out_dim)
 
     if model_name == 'MLP':
@@ -160,22 +155,34 @@ def train_pipeline(model_name, dataset_name, params, dirs):
         lr_schedule_patience = 25
         min_lr = 1e-6
         weight_decay = 0
-        gated = False  # MEAN
+        # MEAN
+        gated = False
         L = 4
         hidden_dim = 168
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'mean'
-        gated = True  # GATED
+        readout = 'sum'
+        # GATED
+        gated = True
         L = 4
         hidden_dim = 150
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'mean'
-
+        readout = 'sum'
+    params = {}
+    params['seed'] = seed
+    params['epochs'] = epochs
+    params['batch_size'] = batch_size
+    params['init_lr'] = init_lr
+    params['lr_reduce_factor'] = lr_reduce_factor
+    params['lr_schedule_patience'] = lr_schedule_patience
+    params['min_lr'] = min_lr
+    params['weight_decay'] = weight_decay
+    params['print_epoch_interval'] = 5
+    params['max_time'] = max_time
     # generic new_params
     net_params = {}
-    net_params['device'] = device
+    # net_params['device'] = device
     net_params['gated'] = gated  # for mlpnet baseline
     net_params['in_dim'] = trainset[0][0].ndata['feat'][0].size(0)
     net_params['in_dim_edge'] = trainset[0][0].edata['feat'][0].size(0)
@@ -186,56 +193,20 @@ def train_pipeline(model_name, dataset_name, params, dirs):
     net_params['n_classes'] = num_classes
     net_params['n_heads'] = n_heads
     net_params['L'] = L  # min L should be 2
-    net_params['readout'] = "sum"
+    net_params['readout'] = readout
     net_params['layer_norm'] = True
     net_params['batch_norm'] = True
     net_params['in_feat_dropout'] = 0.0
-    net_params['dropout'] = 0.0
+    net_params['dropout'] = dropout
     net_params['edge_feat'] = edge_feat
     net_params['self_loop'] = self_loop
 
     # for MLPNet
     net_params['gated'] = gated
 
-    # specific for MoNet
-    net_params['pseudo_dim_MoNet'] = pseudo_dim_MoNet
-    net_params['kernel'] = kernel
+   
 
-    # specific for GIN
-    net_params['n_mlp_GIN'] = n_mlp_GIN
-    net_params['learn_eps_GIN'] = True
-    net_params['neighbor_aggr_GIN'] = 'sum'
 
-    # specific for graphsage
-    net_params['sage_aggregator'] = 'meanpool'
-
-    # specific for diffpoolnet
-    net_params['data_mode'] = 'default'
-    net_params['gnn_per_block'] = gnn_per_block
-    net_params['embedding_dim'] = embedding_dim
-    net_params['pool_ratio'] = pool_ratio
-    net_params['linkpred'] = True
-    net_params['num_pool'] = 1
-    net_params['cat'] = False
-    net_params['batch_size'] = batch_size
-
-    # specific for RingGNN
-    net_params['radius'] = 2
-    num_nodes_train = [trainset[i][0].number_of_nodes() for i in range(len(trainset))]
-    num_nodes_test = [testset[i][0].number_of_nodes() for i in range(len(testset))]
-    num_nodes = num_nodes_train + num_nodes_test
-    net_params['avg_node_num'] = int(np.ceil(np.mean(num_nodes)))
-
-    # specific for 3WLGNN
-    net_params['depth_of_mlp'] = 2
-
-    # calculate assignment dimension: pool_ratio * largest graph's maximum
-    # number of nodes  in the dataset
-    max_num_nodes_train = max(num_nodes_train)
-    max_num_nodes_test = max(num_nodes_test)
-    max_num_node = max(max_num_nodes_train, max_num_nodes_test)
-    net_params['assign_dim'] = int(
-        max_num_node * net_params['pool_ratio']) * net_params['batch_size']
 
     t0 = time.time()
     per_epoch_time = []
@@ -249,17 +220,23 @@ def train_pipeline(model_name, dataset_name, params, dirs):
     trainset, valset = dataset.train, dataset.val
     testset = TestDataset(
         dataset_name, rotated_angle=params['rotated_angle'], n_sp_test=params['n_sp_test'])
-    root_log_dir, root_ckpt_dir, write_file_name, write_config_file = dirs
+
+    import socket
+    out_dir = dirs
+    root_log_dir = out_dir + 'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
+        dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
+    root_ckpt_dir = out_dir + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+        time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
+
     device = net_params['device']
-
+    
+    writer = SummaryWriter(log_dir=root_log_dir)
+    
     # Write the network and optimization hyper-parameters in folder config/
-    with open(write_config_file + '.txt', 'w') as f:
-        f.write("""Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
+
+    writer.add_text(tag='config',text_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
                 .format(dataset_name, model_name, params, net_params, net_params['total_param']))
-
-    log_dir = os.path.join(root_log_dir, "RUN_" + str(0))
-    writer = SummaryWriter(log_dir=log_dir)
-
+        
     # setting seeds
     set_seed(params['seed'])
 
@@ -328,19 +305,19 @@ def train_pipeline(model_name, dataset_name, params, dirs):
                 per_epoch_time.append(time.time()-start)
 
                 # Saving checkpoint
-                ckpt_dir = os.path.join(root_ckpt_dir, "RUN_")
-                if not os.path.exists(ckpt_dir):
-                    os.makedirs(ckpt_dir)
-                torch.save(model.state_dict(), '{}.pkl'.format(ckpt_dir + "/epoch_" + str(epoch)))
 
-                files = glob.glob(ckpt_dir + '/*.pkl')
+                if not os.path.exists(root_ckpt_dir):
+                    os.makedirs(root_ckpt_dir)
+                torch.save(model.state_dict(), '{}.pkl'.format(root_ckpt_dir + "/epoch_" + str(epoch)))
+
+                files = glob.glob(root_ckpt_dir + '/*.pkl')
                 for file in files:
                     epoch_nb = file.split('_')[-1]
                     epoch_nb = int(epoch_nb.split('.')[0])
                     if epoch_nb < epoch-1:
                         os.remove(file)
 
-                scheduler.step(epoch_val_loss)
+                scheduler.step(epoch_val_loss)  # use only information from the validation loss
 
                 if optimizer.param_groups[0]['lr'] < params['min_lr']:
                     print("\n!! LR EQUAL TO MIN LR SET.")
@@ -370,8 +347,8 @@ def train_pipeline(model_name, dataset_name, params, dirs):
     """
         Write the results in out_dir/results folder
     """
-    with open(write_file_name + '.txt', 'w') as f:
-        f.write("""Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
+
+    writer.add_text(tag = 'result',test_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
     FINAL RESULTS\nTEST ACCURACY: {:.4f}\nTRAIN ACCURACY: {:.4f}\n\n
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f} hrs\nAverage Time Per Epoch: {:.4f} s\n\n\n"""
                 .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
@@ -379,8 +356,15 @@ def train_pipeline(model_name, dataset_name, params, dirs):
 
 
 def main():
-    models = ['gcn', 'gat', 'gatedgcn', 'mlp']
-    datasets = ['mnist', 'cifar10', 'fashionmnist']
+    args = config_parser()
+
+    models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
+    datasets = ['mnist', 'cifar10']
+    
+    for model_name in models:
+        for dataset_name in datasets:
+
+            train_pipeline(model_name=model_name, dataset_name=dataset_name, dirs=args.out)
 
 
 if __name__ == '__main__':

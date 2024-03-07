@@ -285,11 +285,11 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         self.valid_split = valid_split
         self.out_dir = out_dir
         print("processing %s dataset to superpixels using slic algorithm..." % (dataset_name))
-        if dataset_name == 'fashionmnist':
+        if dataset_name == 'mnist':
             self.img_size = 28
             n_sp = 95
             compactness = .25
-            dataset = datasets.FashionMNIST(root=dataset_dir, train=is_train, download=False)
+            dataset = datasets.MNIST(root=dataset_dir, train=is_train, download=False)
 
         elif dataset_name == 'cifar10':
             n_sp = 150
@@ -297,11 +297,11 @@ class Image2GraphDataset(torch.utils.data.Dataset):
             self.img_size = 32
             dataset = datasets.CIFAR10(root=dataset_dir, train=is_train, download=False)
 
-        elif dataset_name == 'mnist':
-            self.img_size = 28
-            n_sp = 95
-            compactness = .25
-            dataset = datasets.MNIST(root=dataset_dir, train=is_train, download=False)
+        # elif dataset_name == 'fashionmnist':
+        #     self.img_size = 28
+        #     n_sp = 95
+        #     compactness = .25
+        #     dataset = datasets.FashionMNIST(root=dataset_dir, train=is_train, download=False)
 
         else:
             raise Exception("Unknown dataset")
@@ -442,11 +442,18 @@ def main():
         os.makedirs(args.out_dir)
 
     if args.dataset == 'all':
-        names = ['fashionmnist', 'cifar10', 'mnist']
-    elif args.dataset not in ['fashionmnist', 'cifar10', 'mnist']:
+        names = ['cifar10', 'mnist']
+    elif args.dataset not in ['cifar10', 'mnist']:
         raise Exception("Unknown dataset")
     else:
         names = [args.dataset]
+        
+    # if args.dataset == 'all':
+    #     names = ['fashionmnist', 'cifar10', 'mnist']
+    # elif args.dataset not in ['fashionmnist', 'cifar10', 'mnist']:
+    #     raise Exception("Unknown dataset")
+    # else:
+    #     names = [args.dataset]
 
     for name in names:
         if not check_file_exists(args.out_dir, name):
