@@ -20,6 +20,7 @@ import argparse
 import dgl
 from scipy.spatial.distance import cdist
 from utils import split_dataset, set_seed
+import torchvision.transforms.functional as TF
 
 
 def check_file_exists(path, dataset: str):
@@ -250,13 +251,16 @@ def process_image(params):
     return sp_intensity, sp_coord, sp_order, superpixels
 
 
-class Image2Graph(torch.utils.data.Dataset):
+class Image2GraphDataset(torch.utils.data.Dataset):
     def __init__(self,
                  dataset_dir,
                  out_dir,
                  dataset_name,
                  valid_split=0.1,
-                 use_mean_px=True):
+                 use_mean_px=True,
+                 is_train = True,
+                 rotated_angle = 0,
+                 n_sp_val = 75):
 
         self.dataset_name = dataset_name
         self.graph_lists = []
@@ -267,19 +271,19 @@ class Image2Graph(torch.utils.data.Dataset):
             self.img_size = 28
             n_sp = 95
             compactness = .25
-            dataset = datasets.FashionMNIST(root=dataset_dir, train=True, download=False)
+            dataset = datasets.FashionMNIST(root=dataset_dir, train=is_train, download=False)
 
         elif dataset_name == 'cifar10':
             n_sp = 150
             compactness = 10
             self.img_size = 32
-            dataset = datasets.CIFAR10(root=dataset_dir, train=True, download=False)
+            dataset = datasets.CIFAR10(root=dataset_dir, train=is_train, download=False)
 
         elif dataset_name == 'mnist':
             self.img_size = 28
             n_sp = 95
             compactness = .25
-            dataset = datasets.MNIST(root=dataset_dir, train=True, download=False)
+            dataset = datasets.MNIST(root=dataset_dir, train=is_train, download=False)
 
         else:
             raise Exception("Unknown dataset")
@@ -287,6 +291,24 @@ class Image2Graph(torch.utils.data.Dataset):
 
         images = dataset.data.numpy() if isinstance(dataset.data, torch.Tensor) else dataset.data
         labels = dataset.targets
+        
+        # special for val dataset
+        if not is_train:
+            print('val dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
+            if dataset_name == 'mnist':
+                # 6 and 9 are unrecognizable when rotated
+                valid_labels =[i for i in range(10) if i!=6 and i!=9] 
+                valid_indices = [i for i, label in enumerate(labels) if label.item() in valid_labels]
+                images = images[valid_indices]
+                labels = labels[valid_indices]
+                
+            n_sp = n_sp_val # to override n_sp for val dataset
+            if rotated_angle != 0:
+                images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=True)
+                images = images.numpy()
+            
+        
+        
         n_images = len(dataset)
         with mp.Pool() as pool:
             self.sp_data = pool.map(
@@ -411,7 +433,7 @@ def main():
         
     for name in names:
         if not check_file_exists(args.out_dir, name):
-            image2graph = Image2Graph(args.data_dir, args.out_dir, name, 0.1)
+            image2graph = Image2GraphDataset(args.data_dir, args.out_dir, name, 0.1)
             image2graph.creat_pkl()
 
 

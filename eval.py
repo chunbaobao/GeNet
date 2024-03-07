@@ -11,7 +11,7 @@ from torch.nn.parallel import DataParallel
 from prepare_dataset import SuperPixDataset
 import numpy as np
 from channel import Channel
-
+from prepare_dataset import process_image
 
 
 
