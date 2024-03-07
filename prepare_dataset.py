@@ -76,8 +76,8 @@ def compute_edges_list(A, kth=8+1):
         # ? wrong implement before
         # refers to https://github.com/graphdeeplearning/benchmarking-gnns/issues/17
         # knns = np.argpartition(A, new_kth-1, axis=-1)[:, new_kth:-1]
-        # knn_values = np.partition(A, new_kth-1, axis=-1)[:, new_kth:-1]  
-        knns = np.argpartition(A, new_kth, axis=-1)[:, new_kth+1:] 
+        # knn_values = np.partition(A, new_kth-1, axis=-1)[:, new_kth:-1]
+        knns = np.argpartition(A, new_kth, axis=-1)[:, new_kth+1:]
         knn_values = np.partition(A, new_kth, axis=-1)[:, new_kth+1:]  # NEW
     else:
         # handling for graphs with less than kth nodes
@@ -138,7 +138,6 @@ def self_loop(g):
     return new_g
 
 
-
 class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
 
     def __init__(self, name):
@@ -153,21 +152,20 @@ class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]
+
         print('train, val sizes :', len(self.train), len(self.val))
         print("[I] Data load time: {:.4f}s".format(time.time()-start))
-        
+
     def _add_self_loops(self):
-        
+
         # function for adding self loops
         # this function will be called only if self_loop flag is True
-            
+
         self.train.graph_lists = [self_loop(g) for g in self.train.graph_lists]
         self.val.graph_lists = [self_loop(g) for g in self.val.graph_lists]
-        self.test.graph_lists = [self_loop(g) for g in self.test.graph_lists]
-        
+
         self.train = DGLFormDataset(self.train.graph_lists, self.train.graph_labels)
         self.val = DGLFormDataset(self.val.graph_lists, self.val.graph_labels)
-        self.test = DGLFormDataset(self.test.graph_lists, self.test.graph_labels)
 
     # form a mini batch from a given list of samples = [(graph, label) pairs]
 
@@ -187,6 +185,25 @@ class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
         batched_graph = dgl.batch(graphs)
 
         return batched_graph, labels
+
+
+class TestDataset(SuperPixDataset):
+    def __init__(self, name, rotated_angle=0, n_sp_test=75):
+        self.name = name
+        data_dir = './data/'
+        testdataset = Image2GraphDataset(
+            '../dataset', data_dir, name, is_train=False, rotated_angle=rotated_angle, n_sp_val=n_sp_test)
+        self.test = DGLFormDataset(testdataset.graph_lists, testdataset.graph_labels)
+        return self.test
+
+    def _add_self_loops(self):
+
+        # function for adding self loops
+        # this function will be called only if self_loop flag is True
+
+        self.test.graph_lists = [self_loop(g) for g in self.test.graph_lists]
+
+        self.test = DGLFormDataset(self.test.graph_lists, self.test.graph_labels)
 
 
 def config_parser():
@@ -246,7 +263,7 @@ def process_image(params):
     is_print = False
     if is_print:
         print('image={}/{}, shape={}, min={:.2f}, max={:.2f}, n_sp={}'.format(index + 1, 60000, img.shape,
-                                                                          img.min(), img.max(), sp_intensity.shape[0]))
+                                                                              img.min(), img.max(), sp_intensity.shape[0]))
 
     return sp_intensity, sp_coord, sp_order, superpixels
 
@@ -258,10 +275,11 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                  dataset_name,
                  valid_split=0.1,
                  use_mean_px=True,
-                 is_train = True,
-                 rotated_angle = 0,
-                 n_sp_val = 75):
+                 is_train=True,
+                 rotated_angle=0,
+                 n_sp_val=75):
 
+        self.is_train = is_train
         self.dataset_name = dataset_name
         self.graph_lists = []
         self.valid_split = valid_split
@@ -288,28 +306,25 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         else:
             raise Exception("Unknown dataset")
 
-
         images = dataset.data.numpy() if isinstance(dataset.data, torch.Tensor) else dataset.data
         labels = dataset.targets
-        
+
         # special for val dataset
         if not is_train:
             print('val dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
-            n_sp = n_sp_val # to override n_sp for val dataset
-            
+            n_sp = n_sp_val  # to override n_sp for val dataset
+
             if rotated_angle != 0:
                 if dataset_name == 'mnist':
                     # 6 and 9 are unrecognizable when rotated
-                    valid_labels =[i for i in range(10) if i!=6 and i!=9] 
-                    valid_indices = [i for i, label in enumerate(labels) if label.item() in valid_labels]
+                    valid_labels = [i for i in range(10) if i != 6 and i != 9]
+                    valid_indices = [i for i, label in enumerate(
+                        labels) if label.item() in valid_labels]
                     images = images[valid_indices]
                     labels = labels[valid_indices]
                 images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=True)
                 images = images.numpy()
 
-            
-        
-        
         n_images = len(dataset)
         with mp.Pool() as pool:
             self.sp_data = pool.map(
@@ -373,14 +388,15 @@ class Image2GraphDataset(torch.utils.data.Dataset):
             try:
                 g.edata['feat'] = torch.Tensor(self.edge_features[index]).unsqueeze(1).half()  # NEW
             except Exception as e:
-                print('index:', index,'self.edge_features[index].shape:',self.edge_features[index].shape,
-                      'num_edges:', g.num_edges(),'self.edges_lists[index].shape:', self.edges_lists[index].shape,
-                      'self.node_features[index].shape[0]:', self.node_features[index].shape[0],
-                      'self.edges_lists[index]',self.edges_lists[index])
+                print('index:', index, 'self.edge_features[index].shape:', self.edge_features[index].shape,
+                      'num_edges:', g.num_edges(
+                ), 'self.edges_lists[index].shape:', self.edges_lists[index].shape,
+                    'self.node_features[index].shape[0]:', self.node_features[index].shape[0],
+                    'self.edges_lists[index]', self.edges_lists[index])
                 raise e
-            
+
             # * NEW Implementation add reverse edges
-            # g = dgl.add_reverse_edges(g,copy_ndata = True,copy_edata = True)             
+            # g = dgl.add_reverse_edges(g,copy_ndata = True,copy_edata = True)
             self.graph_lists.append(g)
 
     def __len__(self):
@@ -426,12 +442,12 @@ def main():
         os.makedirs(args.out_dir)
 
     if args.dataset == 'all':
-        names = ['fashionmnist','cifar10','mnist']
-    elif args.dataset not in  ['fashionmnist','cifar10','mnist']:
+        names = ['fashionmnist', 'cifar10', 'mnist']
+    elif args.dataset not in ['fashionmnist', 'cifar10', 'mnist']:
         raise Exception("Unknown dataset")
     else:
         names = [args.dataset]
-        
+
     for name in names:
         if not check_file_exists(args.out_dir, name):
             image2graph = Image2GraphDataset(args.data_dir, args.out_dir, name, 0.1)

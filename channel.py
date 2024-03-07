@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class Channel(nn.Module):
     def __init__(self, snr):
         super(Channel, self).__init__()
@@ -10,4 +11,3 @@ class Channel(nn.Module):
         pass
 
         # return z_hat + noise
-

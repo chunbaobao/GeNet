@@ -11,28 +11,31 @@ from dgl.nn.pytorch import GraphConv
     Thomas N. Kipf, Max Welling, Semi-Supervised Classification with Graph Convolutional Networks (ICLR 2017)
     http://arxiv.org/abs/1609.02907
 """
-    
+
 # Sends a message of node feature h
 # Equivalent to => return {'m': edges.src['h']}
 # * msg function is a entity of EdgeBatch
 # * reduce function is a entity of NodeBatch
-msg = fn.copy_u(u='h', out='m') # fn.copy_src is deprecated 
+msg = fn.copy_u(u='h', out='m')  # fn.copy_src is deprecated
 reduce = fn.mean('m', 'h')
+
 
 class NodeApplyModule(nn.Module):
     # Update node feature h_v with (Wh_v+b)
     def __init__(self, in_dim, out_dim):
         super().__init__()
         self.linear = nn.Linear(in_dim, out_dim)
-        
+
     def forward(self, node):
         h = self.linear(node.data['h'])
         return {'h': h}
+
 
 class GCNLayer(nn.Module):
     """
         Param: [in_dim, out_dim]
     """
+
     def __init__(self, in_dim, out_dim, activation, dropout, batch_norm, residual=False, dgl_builtin=True):
         super().__init__()
         self.in_channels = in_dim
@@ -40,10 +43,10 @@ class GCNLayer(nn.Module):
         self.batch_norm = batch_norm
         self.residual = residual
         self.dgl_builtin = dgl_builtin
-        
+
         if in_dim != out_dim:
             self.residual = False
-        
+
         self.batchnorm_h = nn.BatchNorm1d(out_dim)
         self.activation = activation
         self.dropout = nn.Dropout(dropout)
@@ -54,36 +57,35 @@ class GCNLayer(nn.Module):
         else:
             self.conv = GraphConv(in_dim, out_dim, allow_zero_in_degree=True)
 
-        
-    def forward(self, g:dgl.DGLGraph, feature):
+    def forward(self, g: dgl.DGLGraph, feature):
         h_in = feature   # to be used for residual connection
 
         if self.dgl_builtin == False:
             g.ndata['h'] = feature
             g.update_all(msg, reduce)
             g.apply_nodes(func=self.apply_mod)
-            h = g.ndata['h'] # result of graph convolution
+            h = g.ndata['h']  # result of graph convolution
         else:
             h = self.conv(g, feature)
-        
+
         if self.batch_norm:
-            h = self.batchnorm_h(h) # batch normalization  
-       
+            h = self.batchnorm_h(h)  # batch normalization
+
         if self.activation:
             h = self.activation(h)
-        
+
         if self.residual:
-            h = h_in + h # residual connection
-            
+            h = h_in + h  # residual connection
+
         h = self.dropout(h)
         return h
-    
+
     def __repr__(self):
         return '{}(in_channels={}, out_channels={}, residual={})'.format(self.__class__.__name__,
-                                             self.in_channels,
-                                             self.out_channels, self.residual)
-        
-        
+                                                                         self.in_channels,
+                                                                         self.out_channels, self.residual)
+
+
 class GCNNet(nn.Module):
     def __init__(self, net_params):
         super().__init__()
@@ -97,14 +99,15 @@ class GCNNet(nn.Module):
         self.readout = net_params['readout']
         self.batch_norm = net_params['batch_norm']
         self.residual = net_params['residual']
-        
+
         self.embedding_h = nn.Linear(in_dim, hidden_dim)
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        
+
         self.layers = nn.ModuleList([GCNLayer(hidden_dim, hidden_dim, F.relu, dropout,
                                               self.batch_norm, self.residual) for _ in range(n_layers-1)])
-        self.layers.append(GCNLayer(hidden_dim, out_dim, F.relu, dropout, self.batch_norm, self.residual))
-        # self.MLP_layer = MLPReadout(out_dim, n_classes)        
+        self.layers.append(GCNLayer(hidden_dim, out_dim, F.relu,
+                           dropout, self.batch_norm, self.residual))
+        # self.MLP_layer = MLPReadout(out_dim, n_classes)
 
     def forward(self, g, h, e):
         h = self.embedding_h(h)
@@ -112,7 +115,7 @@ class GCNNet(nn.Module):
         for conv in self.layers:
             h = conv(g, h)
         g.ndata['h'] = h
-        
+
         if self.readout == "sum":
             hg = dgl.sum_nodes(g, 'h')
         elif self.readout == "max":
@@ -121,9 +124,7 @@ class GCNNet(nn.Module):
             hg = dgl.mean_nodes(g, 'h')
         else:
             hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
-        
-        return hg
-          
-        # return self.MLP_layer(hg)
-    
 
+        return hg
+
+        # return self.MLP_layer(hg)
