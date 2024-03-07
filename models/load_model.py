@@ -2,11 +2,11 @@
     Utility file to select GraphNN model as
     selected by the user
 """
-from gatedgcn import GatedGCNNet
-from gcn import GCNNet
-from gat import GATNet
-from mlp import MLPNet
-from mlp_readout import MLPReadout
+from models.gatedgcn import GatedGCNNet
+from models.gcn import GCNNet
+from models.gat import GATNet
+from models.mlp import MLPNet
+from models.mlp_readout import MLPReadout
 import torch.nn as nn
 import channel
 

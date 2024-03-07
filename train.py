@@ -82,16 +82,10 @@ def config_parser():
     return parser.parse_args()
 
 
-def train_pipeline(model_name, dataset_name, dirs):
+def train_pipeline(model_name, dataset_name, params):
     # """
     #     PARAMETERS
     # """
-    if torch.cuda.device_count() > 1:
-        device = gpu_setup(True, 1)
-    elif torch.cuda.is_available():
-        device = gpu_setup(True, 0)
-    else:
-        device = gpu_setup(False, 0)
     n_heads = -1
     edge_feat = False
     gated = False
@@ -222,7 +216,7 @@ def train_pipeline(model_name, dataset_name, dirs):
         dataset_name, rotated_angle=params['rotated_angle'], n_sp_test=params['n_sp_test'])
 
     import socket
-    out_dir = dirs
+    out_dir = params['out']
     root_log_dir = out_dir + 'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
         dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
     root_ckpt_dir = out_dir + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
@@ -361,10 +355,21 @@ def main():
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
     datasets = ['mnist', 'cifar10']
     
+    if torch.cuda.device_count() > 1:
+        device = gpu_setup(True, 1)
+    elif torch.cuda.is_available():
+        device = gpu_setup(True, 0)
+    else:
+        device = gpu_setup(False, 0)
+    
+    params = {}
+    params['device'] = device
+    params['out'] = args.out
+    
     for model_name in models:
         for dataset_name in datasets:
-
-            train_pipeline(model_name=model_name, dataset_name=dataset_name, dirs=args.out)
+            params['n_sp_test'] = 150 if dataset_name == 'cifar10' else 95
+            train_pipeline(model_name=model_name, dataset_name=dataset_name, params=params)
 
 
 if __name__ == '__main__':
