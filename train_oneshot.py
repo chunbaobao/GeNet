@@ -26,7 +26,7 @@ def config_parser():
 
 
 def main():
-    models = ['gcn', 'gat', 'gatedgnc', 'mlp']
+    models = ['gcn', 'gat', 'gatedgcn', 'mlp']
     datasets = ['mnist','cifar10','fashionmnist']
     args = config_parser()
     

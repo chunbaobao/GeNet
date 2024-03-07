@@ -295,17 +295,18 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         # special for val dataset
         if not is_train:
             print('val dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
-            if dataset_name == 'mnist':
-                # 6 and 9 are unrecognizable when rotated
-                valid_labels =[i for i in range(10) if i!=6 and i!=9] 
-                valid_indices = [i for i, label in enumerate(labels) if label.item() in valid_labels]
-                images = images[valid_indices]
-                labels = labels[valid_indices]
-                
             n_sp = n_sp_val # to override n_sp for val dataset
+            
             if rotated_angle != 0:
+                if dataset_name == 'mnist':
+                    # 6 and 9 are unrecognizable when rotated
+                    valid_labels =[i for i in range(10) if i!=6 and i!=9] 
+                    valid_indices = [i for i, label in enumerate(labels) if label.item() in valid_labels]
+                    images = images[valid_indices]
+                    labels = labels[valid_indices]
                 images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=True)
                 images = images.numpy()
+
             
         
         

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import dgl
 import dgl.function as fn
 from dgl.nn.pytorch import GraphConv
-from mlp_readout import MLPReadout
+
 """
     GCN: Graph Convolutional Networks
     Thomas N. Kipf, Max Welling, Semi-Supervised Classification with Graph Convolutional Networks (ICLR 2017)
@@ -104,7 +104,7 @@ class GCNNet(nn.Module):
         self.layers = nn.ModuleList([GCNLayer(hidden_dim, hidden_dim, F.relu, dropout,
                                               self.batch_norm, self.residual) for _ in range(n_layers-1)])
         self.layers.append(GCNLayer(hidden_dim, out_dim, F.relu, dropout, self.batch_norm, self.residual))
-        self.MLP_layer = MLPReadout(out_dim, n_classes)        
+        # self.MLP_layer = MLPReadout(out_dim, n_classes)        
 
     def forward(self, g, h, e):
         h = self.embedding_h(h)
@@ -121,10 +121,9 @@ class GCNNet(nn.Module):
             hg = dgl.mean_nodes(g, 'h')
         else:
             hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
-            
-        return self.MLP_layer(hg)
+        
+        return hg
+          
+        # return self.MLP_layer(hg)
     
-    def loss(self, pred, label):
-        criterion = nn.CrossEntropyLoss()
-        loss = criterion(pred, label)
-        return loss
+

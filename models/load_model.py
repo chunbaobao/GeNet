@@ -6,6 +6,9 @@ from gatedgcn import GatedGCNNet
 from gcn import GCNNet
 from gat import GATNet
 from mlp import MLPNet
+from mlp_readout import MLPReadout
+import torch.nn as nn
+import channel
 
 
 
@@ -24,13 +27,35 @@ def MLP(net_params):
 
 
 
-
-def gnn_model(MODEL_NAME, net_params):
-    models = {
-        'GatedGCN': GatedGCN,
-        'GCN': GCN,
-        'GAT': GAT,
-        'MLP': MLP
-    }
+class GeNet(nn.Module):
+    def __init__(self,model_name, net_params,snr = None):
+        super(GeNet, self).__init__()
+        self.encoder = self.gnn_model(model_name, net_params)
+        if snr is not None:
+            self.channel = channel.Channel(snr)
+        self.decoder = MLPReadout(net_params)
         
-    return models[MODEL_NAME](net_params)
+    @staticmethod
+    def gnn_model(MODEL_NAME, net_params):
+        models = {
+            'GatedGCN': GatedGCN,
+            'GCN': GCN,
+            'GAT': GAT,
+            'MLP': MLP
+        }   
+        return models[MODEL_NAME](net_params)
+    
+    def set_channel(self, snr):
+        self.channel = channel.Channel(snr)
+        
+    def forward(self, x):
+        x = self.encoder(x)
+        if hasattr(self, 'channel'):
+            x = self.channel(x)
+        x = self.decoder(x)
+        return x
+    
+    def loss(self, pred, label):
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(pred, label)
+        return loss
