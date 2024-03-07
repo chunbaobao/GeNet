@@ -71,13 +71,11 @@ def evaluate_network_sparse(model, device, data_loader, epoch):
 def config_parser():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--channel', default='AWGN', type=str,
-                        choices=['AWGN', 'Rayleigh'], help='channel type')
     parser.add_argument('--out', default='./out', type=str, help='path of output')
     parser.add_argument('--dataset_dir',default='./data', type=str, help='path of dataset')
     parser.add_argument('--snr_list', default=['20','15','10','5','0'], nargs='+', help='snr_list')
     parser.add_argument('--model', default='gcn', type=str,
-                        choices=['gcn', 'gat', 'gatedgnc', 'graphsage', 'mlp'], help='model select')
+                        choices=['gcn', 'gat', 'gatedgnc', 'mlp'], help='model select')
 
     return parser.parse_args()
 

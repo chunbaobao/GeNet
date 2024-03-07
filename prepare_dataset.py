@@ -76,9 +76,9 @@ def compute_edges_list(A, kth=8+1):
         # ? wrong implement before
         # refers to https://github.com/graphdeeplearning/benchmarking-gnns/issues/17
         # knns = np.argpartition(A, new_kth-1, axis=-1)[:, new_kth:-1]
-        # knn_values = np.partition(A, new_kth-1, axis=-1)[:, new_kth:-1]  # NEW
+        # knn_values = np.partition(A, new_kth-1, axis=-1)[:, new_kth:-1]  
         knns = np.argpartition(A, new_kth, axis=-1)[:, new_kth+1:] 
-        knn_values = np.partition(A, new_kth, axis=-1)[:, new_kth+1:]  
+        knn_values = np.partition(A, new_kth, axis=-1)[:, new_kth+1:]  # NEW
     else:
         # handling for graphs with less than kth nodes
         # in such cases, the resulting graph will be fully connected
@@ -379,7 +379,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                 raise e
             
             # * NEW Implementation add reverse edges
-            g = dgl.add_reverse_edges(g,copy_ndata = True,copy_edata = True)             
+            # g = dgl.add_reverse_edges(g,copy_ndata = True,copy_edata = True)             
             self.graph_lists.append(g)
 
     def __len__(self):
