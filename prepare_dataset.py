@@ -188,13 +188,12 @@ class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
 
 
 class TestDataset(SuperPixDataset):
-    def __init__(self, name, rotated_angle=0, n_sp_test=75):
+    def __init__(self, name, rotated_angle=0, n_sp_test=None):
         self.name = name
         data_dir = './data/'
         testdataset = Image2GraphDataset(
             '../dataset', data_dir, name, is_train=False, rotated_angle=rotated_angle, n_sp_val=n_sp_test)
         self.test = DGLFormDataset(testdataset.graph_lists, testdataset.graph_labels)
-        return self.test
 
     def _add_self_loops(self):
 
@@ -288,7 +287,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                  use_mean_px=True,
                  is_train=True,
                  rotated_angle=0,
-                 n_sp_val=75):
+                 n_sp_val=None):
 
         self.is_train = is_train
         self.dataset_name = dataset_name
@@ -323,7 +322,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         # special for val dataset
         if not is_train:
             print('val dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
-            n_sp = n_sp_val  # to override n_sp for val dataset
+            n_sp = n_sp_val if n_sp_val is not None else n_sp # to override n_sp for val dataset
 
             if rotated_angle != 0:
                 if dataset_name == 'mnist':

@@ -11,9 +11,8 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
 from utils import view_model_param, gpu_setup, set_seed, accuracy
-from prepare_dataset import SuperPixDataset, TestDataset
+from prepare_dataset import SuperPixDataset, TestDataset, DGLFormDataset
 import numpy as np
-from channel import Channel
 import time
 from tensorboardX import SummaryWriter
 from glob import glob
@@ -163,7 +162,7 @@ def train_pipeline(model_name, dataset_name, params):
         out_dim = hidden_dim
         dropout = 0.0
         readout = 'sum'
-    params = {}
+        
     params['seed'] = seed
     params['epochs'] = epochs
     params['batch_size'] = batch_size
@@ -178,13 +177,13 @@ def train_pipeline(model_name, dataset_name, params):
     net_params = {}
     # net_params['device'] = device
     net_params['gated'] = gated  # for mlpnet baseline
-    net_params['in_dim'] = trainset[0][0].ndata['feat'][0].size(0)
-    net_params['in_dim_edge'] = trainset[0][0].edata['feat'][0].size(0)
+    # net_params['in_dim'] = trainset[0][0].ndata['feat'][0].size(0)
+    # net_params['in_dim_edge'] = trainset[0][0].edata['feat'][0].size(0)
     net_params['residual'] = True
     net_params['hidden_dim'] = hidden_dim
     net_params['out_dim'] = out_dim
-    num_classes = len(np.unique(np.array(trainset[:][1])))
-    net_params['n_classes'] = num_classes
+    # num_classes = len(np.unique(np.array(trainset[:][1])))
+    # net_params['n_classes'] = num_classes
     net_params['n_heads'] = n_heads
     net_params['L'] = L  # min L should be 2
     net_params['readout'] = readout
@@ -213,7 +212,11 @@ def train_pipeline(model_name, dataset_name, params):
 
     trainset, valset = dataset.train, dataset.val
     testset = TestDataset(
-        dataset_name, rotated_angle=params['rotated_angle'], n_sp_test=params['n_sp_test'])
+        dataset_name, rotated_angle=params['rotated_angle'], n_sp_test=params['n_sp_test']).test
+    net_params['in_dim'] = trainset[0][0].ndata['feat'][0].size(0)
+    net_params['in_dim_edge'] = trainset[0][0].edata['feat'][0].size(0)
+    num_classes = len(np.unique(np.array(trainset[:][1])))
+    net_params['n_classes'] = num_classes
 
     import socket
     out_dir = params['out']
@@ -252,17 +255,16 @@ def train_pipeline(model_name, dataset_name, params):
     epoch_train_losses, epoch_val_losses = [], []
     epoch_train_accs, epoch_val_accs = [], []
 
-    # batching exception for Diffpool
-    drop_last = True if model_name == 'DiffPool' else False
+
 
     # import train functions for all other GCNs
 
     train_loader = DataLoader(
-        trainset, batch_size=params['batch_size'], shuffle=True, drop_last=drop_last, collate_fn=dataset.collate)
+        trainset, batch_size=params['batch_size'], shuffle=True, collate_fn=dataset.collate)
     val_loader = DataLoader(
-        valset, batch_size=params['batch_size'], shuffle=False, drop_last=drop_last, collate_fn=dataset.collate)
+        valset, batch_size=params['batch_size'], shuffle=False, collate_fn=dataset.collate)
     test_loader = DataLoader(
-        testset, batch_size=params['batch_size'], shuffle=False, drop_last=drop_last, collate_fn=dataset.collate)
+        testset, batch_size=params['batch_size'], shuffle=False, collate_fn=dataset.collate)
 
     # At any point you can hit Ctrl + C to break out of training early.
     try:
@@ -345,7 +347,7 @@ def train_pipeline(model_name, dataset_name, params):
     writer.add_text(tag = 'result',test_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
     FINAL RESULTS\nTEST ACCURACY: {:.4f}\nTRAIN ACCURACY: {:.4f}\n\n
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f} hrs\nAverage Time Per Epoch: {:.4f} s\n\n\n"""
-                .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
+                .format(dataset_name, model_name, params, net_params, model, view_model_param(model_name, model),
                         np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
 
 
@@ -365,10 +367,11 @@ def main():
     params = {}
     params['device'] = device
     params['out'] = args.out
-    
+    params['rotated_angle'] = 0
+    params['n_sp_test'] = None
     for model_name in models:
         for dataset_name in datasets:
-            params['n_sp_test'] = 150 if dataset_name == 'cifar10' else 95
+            params['n_sp_test'] = 150 if dataset_name == 'cifar10' else 75
             train_pipeline(model_name=model_name, dataset_name=dataset_name, params=params)
 
 
