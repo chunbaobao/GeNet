@@ -220,7 +220,7 @@ def train_pipeline(model_name, dataset_name, params):
 
     import socket
     out_dir = params['out']
-    root_log_dir = out_dir + 'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
+    root_log_dir = out_dir + '/' +'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
         dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
     root_ckpt_dir = out_dir + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
         time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
