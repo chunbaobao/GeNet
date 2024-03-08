@@ -225,14 +225,11 @@ def train_pipeline(model_name, dataset_name, params):
     root_ckpt_dir = out_dir + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
         time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
 
-    device = net_params['device']
-    
+    device = params['device']
+
     writer = SummaryWriter(log_dir=root_log_dir)
     
-    # Write the network and optimization hyper-parameters in folder config/
 
-    writer.add_text(tag='config',text_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
-                .format(dataset_name, model_name, params, net_params, net_params['total_param']))
         
     # setting seeds
     set_seed(params['seed'])
@@ -244,7 +241,12 @@ def train_pipeline(model_name, dataset_name, params):
 
     model = GeNet(model_name, net_params, snr=params['snr'])
     model = model.to(device)
-
+    
+    # Write the network and optimization hyper-parameters in folder config/
+    net_params['total_param'] = view_model_param(model_name, net_params)
+    writer.add_text(tag='config',text_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
+                .format(dataset_name, model_name, params, net_params, net_params['total_param']))
+    
     optimizer = optim.Adam(
         model.parameters(), lr=params['init_lr'], weight_decay=params['weight_decay'])
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
@@ -347,7 +349,7 @@ def train_pipeline(model_name, dataset_name, params):
     writer.add_text(tag = 'result',test_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
     FINAL RESULTS\nTEST ACCURACY: {:.4f}\nTRAIN ACCURACY: {:.4f}\n\n
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f} hrs\nAverage Time Per Epoch: {:.4f} s\n\n\n"""
-                .format(dataset_name, model_name, params, net_params, model, view_model_param(model_name, model),
+                .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
                         np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
 
 
