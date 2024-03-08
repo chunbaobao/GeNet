@@ -371,6 +371,7 @@ def main():
     params['out'] = args.out
     params['rotated_angle'] = 0
     params['n_sp_test'] = None
+    params['snr'] = None
     for model_name in models:
         for dataset_name in datasets:
             params['n_sp_test'] = 150 if dataset_name == 'cifar10' else 75
