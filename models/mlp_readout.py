@@ -13,7 +13,7 @@ class MLPReadout(nn.Module):
         super().__init__()
         input_dim=net_params['out_dim'] 
         output_dim=net_params['n_classes']
-        self.read_out = net_params['readout']
+        self.readout = net_params['readout']
         list_FC_layers = [nn.Linear(input_dim//2**l, input_dim//2 **
                                     (l+1), bias=True) for l in range(L)]
         list_FC_layers.append(nn.Linear(input_dim//2**L, output_dim, bias=True))
