@@ -11,6 +11,7 @@ import torch.nn as nn
 import channel
 import torch
 
+
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
 
@@ -55,7 +56,7 @@ class GeNet(nn.Module):
         hg = self.decoder(g)
         return hg
 
-    def loss(self, pred, label, is_constrain = False, k = 0.1):
+    def loss(self, pred, label, is_constrain=False, k=0.1):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, label)
         if is_constrain:

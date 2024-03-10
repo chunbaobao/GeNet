@@ -221,7 +221,7 @@ def config_parser():
 # refers to extract_superpixels.py
 def process_image(params):
 
-    img, n_sp, compactness, shuffle, index ,dataset_name = params
+    img, n_sp, compactness, shuffle, index, dataset_name = params
 
     assert img.dtype == np.uint8, img.dtype
     img = (img / 255.).astype(np.float32)
@@ -234,8 +234,7 @@ def process_image(params):
                        channel_axis=channel_axis, start_label=0)
     sp_indices = np.unique(superpixels)
     n_sp_extracted = len(sp_indices)
-    
-    
+
     # n_sp_extracted = n_sp + 1  # number of actually extracted superpixels (can be different from requested in SLIC)
     # n_sp_query = n_sp + (20 if dataset_name == 'mnist' else 50)  # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
     # while n_sp_extracted > n_sp:
@@ -245,8 +244,8 @@ def process_image(params):
     #     n_sp_query -= 1  # reducing the number of superpixels until we get <= n superpixels
 
     # assert n_sp_extracted <= n_sp and n_sp_extracted > 0, (index, n_sp_extracted, n_sp)
-    assert n_sp_extracted == np.max(superpixels) + 1, ('superpixel indices', np.unique(superpixels))  # make sure superpixel indices are numbers from 0 to n-1
-
+    # make sure superpixel indices are numbers from 0 to n-1
+    assert n_sp_extracted == np.max(superpixels) + 1, ('superpixel indices', np.unique(superpixels))
 
     assert n_sp_extracted == np.max(superpixels) + 1, ('superpixel indices', np.unique(superpixels))
 
@@ -304,7 +303,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
             dataset = datasets.MNIST(root=dataset_dir, train=is_train, download=False)
 
         elif dataset_name == 'cifar10':
-            n_sp = 150
+            n_sp = 200
             compactness = 10
             self.img_size = 32
             dataset = datasets.CIFAR10(root=dataset_dir, train=is_train, download=False)
@@ -324,7 +323,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         # special for val dataset
         if not is_train:
             print('val dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
-            n_sp = n_sp_val if n_sp_val is not None else n_sp # to override n_sp for val dataset
+            n_sp = n_sp_val if n_sp_val is not None else n_sp  # to override n_sp for val dataset
 
             if rotated_angle != 0:
                 if dataset_name == 'mnist':
@@ -340,7 +339,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         n_images = len(dataset)
         with mp.Pool() as pool:
             self.sp_data = pool.map(
-                process_image, [(images[i], n_sp, compactness, True, i ,dataset_name) for i in range(n_images)])
+                process_image, [(images[i], n_sp, compactness, True, i, dataset_name) for i in range(n_images)])
         self.graph_labels = torch.LongTensor(labels)
 
         self.use_mean_px = use_mean_px
@@ -459,7 +458,7 @@ def main():
         raise Exception("Unknown dataset")
     else:
         names = [args.dataset]
-        
+
     # if args.dataset == 'all':
     #     names = ['fashionmnist', 'cifar10', 'mnist']
     # elif args.dataset not in ['fashionmnist', 'cifar10', 'mnist']:

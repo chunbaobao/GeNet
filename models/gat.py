@@ -115,7 +115,7 @@ class GATNet(nn.Module):
             h = conv(g, h)
         g.ndata['h'] = h
 
-        return g 
+        return g
         # if self.readout == "sum":
         #     hg = dgl.sum_nodes(g, 'h')
         # elif self.readout == "max":

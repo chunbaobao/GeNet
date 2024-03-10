@@ -11,8 +11,8 @@ class MLPReadout(nn.Module):
 
     def __init__(self, net_params, L=2):  # L=nb_hidden_layers
         super().__init__()
-        input_dim=net_params['out_dim'] 
-        output_dim=net_params['n_classes']
+        input_dim = net_params['out_dim']
+        output_dim = net_params['n_classes']
         self.readout = net_params['readout']
         list_FC_layers = [nn.Linear(input_dim//2**l, input_dim//2 **
                                     (l+1), bias=True) for l in range(L)]
@@ -20,8 +20,11 @@ class MLPReadout(nn.Module):
         self.FC_layers = nn.ModuleList(list_FC_layers)
         self.L = L
 
+        for layer in self.FC_layers:
+            nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+
     def forward(self, g):
-        
+
         if self.readout == "sum":
             hg = dgl.sum_nodes(g, 'h')
         elif self.readout == "max":
@@ -40,5 +43,5 @@ class MLPReadout(nn.Module):
     def constrain_loss(self):
         loss = 0
         for layer in self.FC_layers:
-            loss += torch.sum(torch.abs(torch.sum(layer.weight,dim=-1)))
+            loss += torch.sum(torch.abs(torch.sum(layer.weight, dim=-1)))
         return loss

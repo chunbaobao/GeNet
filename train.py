@@ -20,7 +20,7 @@ from models.load_model import GeNet
 import time
 
 
-def train_epoch(model, optimizer, device, data_loader, epoch):
+def train_epoch(model, optimizer, device, data_loader):
     model.train()
     epoch_loss = 0
     epoch_train_acc = 0
@@ -46,7 +46,7 @@ def train_epoch(model, optimizer, device, data_loader, epoch):
     return epoch_loss, epoch_train_acc, optimizer
 
 
-def evaluate_network(model, device, data_loader, epoch):
+def evaluate_network(model, device, data_loader):
     model.eval()
     epoch_test_loss = 0
     epoch_test_acc = 0
@@ -162,7 +162,7 @@ def train_pipeline(model_name, dataset_name, params):
         out_dim = hidden_dim
         dropout = 0.0
         readout = 'sum'
-        
+
     params['seed'] = seed
     params['epochs'] = epochs
     params['batch_size'] = batch_size
@@ -197,10 +197,6 @@ def train_pipeline(model_name, dataset_name, params):
     # for MLPNet
     net_params['gated'] = gated
 
-   
-
-
-
     t0 = time.time()
     per_epoch_time = []
     dataset = SuperPixDataset(dataset_name)
@@ -220,17 +216,17 @@ def train_pipeline(model_name, dataset_name, params):
 
     import socket
     out_dir = params['out']
-    root_log_dir = out_dir + '/' +'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
+    root_log_dir = out_dir + '/' + 'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
         dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
-    root_ckpt_dir = out_dir + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+    root_ckpt_dir = out_dir + '/' + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+        time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
+    root_config_dir = out_dir + '/' + 'configs/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
         time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
 
     device = params['device']
 
     writer = SummaryWriter(log_dir=root_log_dir)
-    
 
-        
     # setting seeds
     set_seed(params['seed'])
 
@@ -241,12 +237,12 @@ def train_pipeline(model_name, dataset_name, params):
 
     model = GeNet(model_name, net_params, snr=params['snr'])
     model = model.to(device)
-    
+
     # Write the network and optimization hyper-parameters in folder config/
     net_params['total_param'] = view_model_param(model_name, model)
-    writer.add_text(tag='config',text_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
-                .format(dataset_name, model_name, params, net_params, net_params['total_param']))
-    
+    writer.add_text(tag='config', text_string="""Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
+                    .format(dataset_name, model_name, params, net_params, net_params['total_param']))
+
     optimizer = optim.Adam(
         model.parameters(), lr=params['init_lr'], weight_decay=params['weight_decay'])
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
@@ -256,8 +252,6 @@ def train_pipeline(model_name, dataset_name, params):
 
     epoch_train_losses, epoch_val_losses = [], []
     epoch_train_accs, epoch_val_accs = [], []
-
-
 
     # import train functions for all other GCNs
 
@@ -278,10 +272,10 @@ def train_pipeline(model_name, dataset_name, params):
                 start = time.time()
 
                 epoch_train_loss, epoch_train_acc, optimizer = train_epoch(
-                    model, optimizer, device, train_loader, epoch)
+                    model, optimizer, device, train_loader)
 
-                epoch_val_loss, epoch_val_acc = evaluate_network(model, device, val_loader, epoch)
-                _, epoch_test_acc = evaluate_network(model, device, test_loader, epoch)
+                epoch_val_loss, epoch_val_acc = evaluate_network(model, device, val_loader)
+                _, epoch_test_acc = evaluate_network(model, device, test_loader)
 
                 epoch_train_losses.append(epoch_train_loss)
                 epoch_val_losses.append(epoch_val_loss)
@@ -306,7 +300,8 @@ def train_pipeline(model_name, dataset_name, params):
 
                 if not os.path.exists(root_ckpt_dir):
                     os.makedirs(root_ckpt_dir)
-                torch.save(model.state_dict(), '{}.pkl'.format(root_ckpt_dir + "/epoch_" + str(epoch)))
+                torch.save(model.state_dict(), '{}.pkl'.format(
+                    root_ckpt_dir + "/epoch_" + str(epoch)))
 
                 files = glob.glob(root_ckpt_dir + '/*.pkl')
                 for file in files:
@@ -340,34 +335,36 @@ def train_pipeline(model_name, dataset_name, params):
     print("TOTAL TIME TAKEN: {:.4f}s".format(time.time()-t0))
     print("AVG TIME PER EPOCH: {:.4f}s".format(np.mean(per_epoch_time)))
 
-    writer.close()
-
     """
         Write the results in out_dir/results folder
     """
 
-    writer.add_text(tag = 'result',test_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
+    writer.add_text(tag='result', test_string="""Dataset: {}\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
     FINAL RESULTS\nTEST ACCURACY: {:.4f}\nTRAIN ACCURACY: {:.4f}\n\n
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f} hrs\nAverage Time Per Epoch: {:.4f} s\n\n\n"""
-                .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
-                        np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
+                    .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
+                            np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
+    writer.close()
+    with open(root_config_dir + '.yaml', 'w') as f:
+        dict_yaml = {'dataset_name': dataset_name, 'model_name': model_name,
+                     'params': params, 'net_params': net_params}
+        import yaml
+        yaml.dump(dict_yaml, f)
 
 
 def main():
     args = config_parser()
 
-
-    
     if torch.cuda.device_count() > 1:
         device = gpu_setup(True, 1)
     elif torch.cuda.is_available():
         device = gpu_setup(True, 0)
     else:
         device = gpu_setup(False, 0)
-        
+
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['mnist', 'cifar10'] 
-       
+    datasets = ['mnist', 'cifar10']
+
     params = {}
     params['device'] = device
     params['out'] = args.out
