@@ -89,7 +89,6 @@ class GATNet(nn.Module):
         in_dim = net_params['in_dim']
         hidden_dim = net_params['hidden_dim']
         out_dim = net_params['out_dim']
-        n_classes = net_params['n_classes']
         num_heads = net_params['n_heads']
         in_feat_dropout = net_params['in_feat_dropout']
         dropout = net_params['dropout']
@@ -116,14 +115,15 @@ class GATNet(nn.Module):
             h = conv(g, h)
         g.ndata['h'] = h
 
-        if self.readout == "sum":
-            hg = dgl.sum_nodes(g, 'h')
-        elif self.readout == "max":
-            hg = dgl.max_nodes(g, 'h')
-        elif self.readout == "mean":
-            hg = dgl.mean_nodes(g, 'h')
-        else:
-            hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
+        return g 
+        # if self.readout == "sum":
+        #     hg = dgl.sum_nodes(g, 'h')
+        # elif self.readout == "max":
+        #     hg = dgl.max_nodes(g, 'h')
+        # elif self.readout == "mean":
+        #     hg = dgl.mean_nodes(g, 'h')
+        # else:
+        #     hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
 
-        return hg
-        # return self.MLP_layer(hg)
+        # return hg
+        # # return self.MLP_layer(hg)

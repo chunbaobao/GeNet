@@ -105,7 +105,7 @@ def train_pipeline(model_name, dataset_name, params):
         hidden_dim = 70
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'mean'
+        readout = 'sum'
 
     if model_name == 'GCN':
         seed = 41
@@ -120,7 +120,7 @@ def train_pipeline(model_name, dataset_name, params):
         hidden_dim = 146
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'mean'
+        readout = 'sum'
 
     if model_name == 'GAT':
         seed = 41
@@ -148,13 +148,13 @@ def train_pipeline(model_name, dataset_name, params):
         lr_schedule_patience = 25
         min_lr = 1e-6
         weight_decay = 0
-        # MEAN
-        gated = False
-        L = 4
-        hidden_dim = 168
-        out_dim = hidden_dim
-        dropout = 0.0
-        readout = 'sum'
+        # # MEAN
+        # gated = False
+        # L = 4
+        # hidden_dim = 168
+        # out_dim = hidden_dim
+        # dropout = 0.0
+        # readout = 'sum'
         # GATED
         gated = True
         L = 4
@@ -243,7 +243,7 @@ def train_pipeline(model_name, dataset_name, params):
     model = model.to(device)
     
     # Write the network and optimization hyper-parameters in folder config/
-    net_params['total_param'] = view_model_param(model_name, net_params)
+    net_params['total_param'] = view_model_param(model_name, model)
     writer.add_text(tag='config',text_string = """Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n\nTotal Parameters: {}\n\n"""
                 .format(dataset_name, model_name, params, net_params, net_params['total_param']))
     
@@ -356,8 +356,7 @@ def train_pipeline(model_name, dataset_name, params):
 def main():
     args = config_parser()
 
-    models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['mnist', 'cifar10']
+
     
     if torch.cuda.device_count() > 1:
         device = gpu_setup(True, 1)
@@ -365,7 +364,10 @@ def main():
         device = gpu_setup(True, 0)
     else:
         device = gpu_setup(False, 0)
-    
+        
+    models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
+    datasets = ['mnist', 'cifar10'] 
+       
     params = {}
     params['device'] = device
     params['out'] = args.out

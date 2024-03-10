@@ -9,7 +9,7 @@ from models.mlp import MLPNet
 from models.mlp_readout import MLPReadout
 import torch.nn as nn
 import channel
-
+import torch
 
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
@@ -48,14 +48,16 @@ class GeNet(nn.Module):
     def set_channel(self, snr):
         self.channel = channel.Channel(snr)
 
-    def forward(self, x):
-        x = self.encoder(x)
+    def forward(self, g, h, e):
+        g = self.encoder(g, h, e)
         if hasattr(self, 'channel'):
-            x = self.channel(x)
-        x = self.decoder(x)
-        return x
+            g = self.channel(g)
+        hg = self.decoder(g)
+        return hg
 
-    def loss(self, pred, label):
+    def loss(self, pred, label, is_constrain = False, k = 0.1):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, label)
+        if is_constrain:
+            loss = loss + self.decoder.constrain_loss() * k
         return loss

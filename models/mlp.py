@@ -10,7 +10,6 @@ class MLPNet(nn.Module):
         super().__init__()
         in_dim = net_params['in_dim']
         hidden_dim = net_params['hidden_dim']
-        n_classes = net_params['n_classes']
         in_feat_dropout = net_params['in_feat_dropout']
         dropout = net_params['dropout']
         n_layers = net_params['L']
@@ -40,7 +39,7 @@ class MLPNet(nn.Module):
         if self.gated:
             h = torch.sigmoid(self.gates(h)) * h
             g.ndata['h'] = h
-            hg = dgl.sum_nodes(g, 'h')
+            # hg = dgl.sum_nodes(g, 'h')
             # hg = torch.cat(
             #     (
             #         dgl.sum_nodes(g, 'h'),
@@ -53,5 +52,5 @@ class MLPNet(nn.Module):
             g.ndata['h'] = h
             hg = dgl.mean_nodes(g, 'h')
 
-        return hg
+        return g
         # return self.readout_mlp(hg)

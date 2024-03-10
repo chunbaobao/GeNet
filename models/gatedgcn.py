@@ -116,7 +116,6 @@ class GatedGCNNet(nn.Module):
         in_dim_edge = net_params['in_dim_edge']
         hidden_dim = net_params['hidden_dim']
         out_dim = net_params['out_dim']
-        n_classes = net_params['n_classes']
         dropout = net_params['dropout']
         n_layers = net_params['L']
         self.readout = net_params['readout']
@@ -146,14 +145,15 @@ class GatedGCNNet(nn.Module):
             h, e = conv(g, h, e)
         g.ndata['h'] = h
 
-        if self.readout == "sum":
-            hg = dgl.sum_nodes(g, 'h')
-        elif self.readout == "max":
-            hg = dgl.max_nodes(g, 'h')
-        elif self.readout == "mean":
-            hg = dgl.mean_nodes(g, 'h')
-        else:
-            hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
+        return g
+        # if self.readout == "sum":
+        #     hg = dgl.sum_nodes(g, 'h')
+        # elif self.readout == "max":
+        #     hg = dgl.max_nodes(g, 'h')
+        # elif self.readout == "mean":
+        #     hg = dgl.mean_nodes(g, 'h')
+        # else:
+        #     hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
 
-        return hg
-        # return self.MLP_layer(hg)
+        # return hg
+        # # return self.MLP_layer(hg)
