@@ -212,7 +212,7 @@ def config_parser():
     parser.add_argument('--data_dir', type=str, default='../dataset', help='path to the dataset')
     parser.add_argument('--out_dir', type=str, default='./data',
                         help='path where to save superpixels')
-    parser.add_argument('--seed', type=int, default=100, help='seed for shuffling nodes')
+    parser.add_argument('--seed', type=int, default=123, help='seed for shuffling nodes')
     args = parser.parse_args()
 
     return args
