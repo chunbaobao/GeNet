@@ -373,7 +373,7 @@ def main():
     params['snr'] = None
     for model_name in models:
         for dataset_name in datasets:
-            params['n_sp_test'] = 150 if dataset_name == 'cifar10' else 75
+            params['n_sp_test'] = 200 if dataset_name == 'cifar10' else 95
             train_pipeline(model_name=model_name, dataset_name=dataset_name, params=params)
 
 

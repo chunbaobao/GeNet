@@ -41,8 +41,7 @@ def main():
     params['snr_list'] = snr_list = range(0, 31, 1)
     params['rotation'] = [0]
     params['path'] = './out/checkpoints/GatedGCN_CIFAR10_GPU1_01h45m26s_on_Mar_07_2024/xxx.pkl'
-    for snr in snr_list:
-        eval_model(params)
+    eval_model(params)
 
 
 if __name__ == '__main__':

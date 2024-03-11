@@ -212,7 +212,7 @@ def config_parser():
     parser.add_argument('--data_dir', type=str, default='../dataset', help='path to the dataset')
     parser.add_argument('--out_dir', type=str, default='./data',
                         help='path where to save superpixels')
-    parser.add_argument('--seed', type=int, default=123, help='seed for shuffling nodes')
+    parser.add_argument('--seed', type=int, default=111, help='seed for shuffling nodes')
     args = parser.parse_args()
 
     return args
@@ -230,20 +230,20 @@ def process_image(params):
 
     # number of actually extracted superpixels (can be different from requested in SLIC)
     # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
-    superpixels = slic(img, n_segments=n_sp, compactness=compactness,
-                       channel_axis=channel_axis, start_label=0)
-    sp_indices = np.unique(superpixels)
-    n_sp_extracted = len(sp_indices)
+    # superpixels = slic(img, n_segments=n_sp, compactness=compactness,
+    #                    channel_axis=channel_axis, start_label=0)
+    # sp_indices = np.unique(superpixels)
+    # n_sp_extracted = len(sp_indices)
 
-    # n_sp_extracted = n_sp + 1  # number of actually extracted superpixels (can be different from requested in SLIC)
-    # n_sp_query = n_sp + (20 if dataset_name == 'mnist' else 50)  # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
-    # while n_sp_extracted > n_sp:
-    #     superpixels = slic(img, n_segments=n_sp_query, compactness=compactness, channel_axis = channel_axis, start_label = 0)
-    #     sp_indices = np.unique(superpixels)
-    #     n_sp_extracted = len(sp_indices)
-    #     n_sp_query -= 1  # reducing the number of superpixels until we get <= n superpixels
+    n_sp_extracted = n_sp + 1  # number of actually extracted superpixels (can be different from requested in SLIC)
+    n_sp_query = n_sp + (20 if dataset_name == 'mnist' else 50)  # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
+    while n_sp_extracted > n_sp:
+        superpixels = slic(img, n_segments=n_sp_query, compactness=compactness, channel_axis = channel_axis, start_label = 0)
+        sp_indices = np.unique(superpixels)
+        n_sp_extracted = len(sp_indices)
+        n_sp_query -= 1  # reducing the number of superpixels until we get <= n superpixels
 
-    # assert n_sp_extracted <= n_sp and n_sp_extracted > 0, (index, n_sp_extracted, n_sp)
+    assert n_sp_extracted <= n_sp and n_sp_extracted > 0, (index, n_sp_extracted, n_sp)
     # make sure superpixel indices are numbers from 0 to n-1
     assert n_sp_extracted == np.max(superpixels) + 1, ('superpixel indices', np.unique(superpixels))
 
@@ -298,12 +298,12 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         print("processing %s dataset to superpixels using slic algorithm..." % (dataset_name))
         if dataset_name == 'mnist':
             self.img_size = 28
-            n_sp = 95
+            n_sp =75
             compactness = .25
             dataset = datasets.MNIST(root=dataset_dir, train=is_train, download=False)
 
         elif dataset_name == 'cifar10':
-            n_sp = 200
+            n_sp = 150
             compactness = 10
             self.img_size = 32
             dataset = datasets.CIFAR10(root=dataset_dir, train=is_train, download=False)
