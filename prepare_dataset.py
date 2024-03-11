@@ -298,7 +298,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
         print("processing %s dataset to superpixels using slic algorithm..." % (dataset_name))
         if dataset_name == 'mnist':
             self.img_size = 28
-            n_sp =75
+            n_sp = 75
             compactness = .25
             dataset = datasets.MNIST(root=dataset_dir, train=is_train, download=False)
 
