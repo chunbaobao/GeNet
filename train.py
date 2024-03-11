@@ -15,7 +15,7 @@ from prepare_dataset import SuperPixDataset, TestDataset, DGLFormDataset
 import numpy as np
 import time
 from tensorboardX import SummaryWriter
-from glob import glob
+import glob
 from models.load_model import GeNet
 import time
 
@@ -363,7 +363,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['mnist', 'cifar10']
+    datasets = ['mnist']
 
     params = {}
     params['device'] = device
