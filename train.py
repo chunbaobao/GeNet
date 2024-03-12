@@ -82,6 +82,9 @@ def config_parser():
 
 
 def train_pipeline(model_name, dataset_name, params):
+    
+    print('-' * 89)
+    print("Training {} on {} dataset".format(model_name, dataset_name))
     # """
     #     PARAMETERS
     # """
@@ -216,12 +219,12 @@ def train_pipeline(model_name, dataset_name, params):
 
     import socket
     out_dir = params['out']
-    root_log_dir = out_dir + '/' + 'logs/' + "_" + model_name.upper() + "_" + \
-        dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
-    root_ckpt_dir = out_dir + '/' + 'checkpoints/' + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
-        time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
-    root_config_dir = out_dir + '/' + 'configs/' + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
-        time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
+    root_log_dir = out_dir + '/' + 'logs/' + model_name.upper() + "_" + \
+        dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y') + '_' + socket.gethostname()
+    root_ckpt_dir = out_dir + '/' + 'checkpoints/' + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+        time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y') + '_' + socket.gethostname()
+    root_config_dir = out_dir + '/' + 'configs/' + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+        time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y') + '_' + socket.gethostname()
 
     device = params['device']
 
@@ -345,7 +348,9 @@ def train_pipeline(model_name, dataset_name, params):
                     .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
                             np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
     writer.close()
-    with open(root_config_dir + '.yaml', 'a+') as f:
+    if not os.path.exists(os.path.dirname(root_config_dir)):
+        os.makedirs(os.path.dirname(root_config_dir))
+    with open(root_config_dir + '.yaml', 'w') as f:
         dict_yaml = {'dataset_name': dataset_name, 'model_name': model_name,
                      'params': params, 'net_params': net_params}
         import yaml
@@ -363,7 +368,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['cifar10']
+    datasets = ['mnist']
 
     params = {}
     params['device'] = device
