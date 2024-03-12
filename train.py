@@ -327,8 +327,8 @@ def train_pipeline(model_name, dataset_name, params):
         print('-' * 89)
         print('Exiting from training early because of KeyboardInterrupt')
 
-    _, test_acc = evaluate_network(model, device, test_loader, epoch)
-    _, train_acc = evaluate_network(model, device, train_loader, epoch)
+    _, test_acc = evaluate_network(model, device, test_loader)
+    _, train_acc = evaluate_network(model, device, train_loader)
     print("Test Accuracy: {:.4f}".format(test_acc))
     print("Train Accuracy: {:.4f}".format(train_acc))
     print("Convergence Time (Epochs): {:.4f}".format(epoch))
@@ -363,7 +363,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['mnist']
+    datasets = ['cifar10']
 
     params = {}
     params['device'] = device
