@@ -339,7 +339,7 @@ def train_pipeline(model_name, dataset_name, params):
         Write the results in out_dir/results folder
     """
 
-    writer.add_text(tag='result', test_string="""Dataset: {}\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
+    writer.add_text(tag='result', text_string="""Dataset: {}\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
     FINAL RESULTS\nTEST ACCURACY: {:.4f}\nTRAIN ACCURACY: {:.4f}\n\n
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f} hrs\nAverage Time Per Epoch: {:.4f} s\n\n\n"""
                     .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
