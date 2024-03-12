@@ -109,7 +109,7 @@ def train_pipeline(model_name, dataset_name, params):
 
     if model_name == 'GCN':
         seed = 41
-        epochs = 1
+        epochs = 1000
         batch_size = 5
         init_lr = 5e-5
         lr_reduce_factor = 0.5
