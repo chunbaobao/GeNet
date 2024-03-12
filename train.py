@@ -109,7 +109,7 @@ def train_pipeline(model_name, dataset_name, params):
 
     if model_name == 'GCN':
         seed = 41
-        epochs = 1000
+        epochs = 1
         batch_size = 5
         init_lr = 5e-5
         lr_reduce_factor = 0.5
@@ -216,11 +216,11 @@ def train_pipeline(model_name, dataset_name, params):
 
     import socket
     out_dir = params['out']
-    root_log_dir = out_dir + '/' + 'logs/' + socket.gethostname() + "_" + model_name.upper() + "_" + \
+    root_log_dir = out_dir + '/' + 'logs/' + "_" + model_name.upper() + "_" + \
         dataset_name.upper() + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
-    root_ckpt_dir = out_dir + '/' + 'checkpoints/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+    root_ckpt_dir = out_dir + '/' + 'checkpoints/' + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
         time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
-    root_config_dir = out_dir + '/' + 'configs/' + socket.gethostname() + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
+    root_config_dir = out_dir + '/' + 'configs/' + "_" + model_name.upper() + "_" + dataset_name.upper() + "_" + \
         time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
 
     device = params['device']
@@ -345,7 +345,7 @@ def train_pipeline(model_name, dataset_name, params):
                     .format(dataset_name, model_name, params, net_params, model, net_params['total_param'],
                             np.mean(np.array(test_acc))*100, np.mean(np.array(train_acc))*100, epoch, (time.time()-t0)/3600, np.mean(per_epoch_time)))
     writer.close()
-    with open(root_config_dir + '.yaml', 'w') as f:
+    with open(root_config_dir + '.yaml', 'a+') as f:
         dict_yaml = {'dataset_name': dataset_name, 'model_name': model_name,
                      'params': params, 'net_params': net_params}
         import yaml
@@ -363,7 +363,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['mnist']
+    datasets = ['cifar10']
 
     params = {}
     params['device'] = device
