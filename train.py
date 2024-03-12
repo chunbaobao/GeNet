@@ -363,7 +363,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['cifar10']
+    datasets = ['mnist']
 
     params = {}
     params['device'] = device

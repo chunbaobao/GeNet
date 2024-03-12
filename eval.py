@@ -38,7 +38,7 @@ def eval_model(params):
 
 def main():
     params = {}
-    params['snr_list'] = snr_list = range(0, 31, 1)
+    params['snr_list'] = range(0, 31, 1)
     params['rotation'] = [0]
     params['path'] = './out/checkpoints/GatedGCN_CIFAR10_GPU1_01h45m26s_on_Mar_07_2024/xxx.pkl'
     eval_model(params)
