@@ -25,7 +25,6 @@ def train_epoch(model, optimizer, device, data_loader):
     epoch_loss = 0
     epoch_train_acc = 0
     nb_data = 0
-    gpu_mem = 0
     for iter, (batch_graphs, batch_labels) in enumerate(data_loader):
         batch_graphs = batch_graphs.to(device)
         batch_x = batch_graphs.ndata['feat'].to(device)  # num x feat
@@ -98,7 +97,7 @@ def train_pipeline(model_name, dataset_name, params):
     if model_name == 'GatedGCN':
         seed = 41
         epochs = 1000
-        batch_size = 16
+        batch_size = 5
         init_lr = 5e-5
         lr_reduce_factor = 0.5
         lr_schedule_patience = 25
@@ -128,7 +127,7 @@ def train_pipeline(model_name, dataset_name, params):
     if model_name == 'GAT':
         seed = 41
         epochs = 1000
-        batch_size = 50
+        batch_size = 5
         init_lr = 5e-5
         lr_reduce_factor = 0.5
         lr_schedule_patience = 25
@@ -145,7 +144,7 @@ def train_pipeline(model_name, dataset_name, params):
     if model_name == 'MLP':
         seed = 41
         epochs = 1000
-        batch_size = 50
+        batch_size = 5
         init_lr = 5e-4
         lr_reduce_factor = 0.5
         lr_schedule_patience = 25
@@ -227,7 +226,7 @@ def train_pipeline(model_name, dataset_name, params):
         time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y') + '_' + socket.gethostname()
 
     device = params['device']
-
+    net_params['device'] = device
     writer = SummaryWriter(log_dir=root_log_dir)
 
     # setting seeds
@@ -368,7 +367,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
-    datasets = ['mnist']
+    datasets = ['cifar10']
 
     params = {}
     params['device'] = device

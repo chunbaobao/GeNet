@@ -9,7 +9,6 @@ from models.mlp import MLPNet
 from models.mlp_readout import MLPReadout
 import torch.nn as nn
 import channel
-import torch
 
 
 def GatedGCN(net_params):
@@ -30,7 +29,7 @@ def MLP(net_params):
 
 class GeNet(nn.Module):
     def __init__(self, model_name, net_params, snr=None):
-        super(GeNet, self).__init__()
+        super().__init__()
         self.encoder = self.gnn_model(model_name, net_params)
         if snr is not None:
             self.channel = channel.Channel(snr)

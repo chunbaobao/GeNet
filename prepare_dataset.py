@@ -322,7 +322,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
 
         # special for val dataset
         if not is_train:
-            print('val dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
+            print('test dataset with rotated_angle:{} and n_sp:{}'.format(rotated_angle, n_sp_val))
             n_sp = n_sp_val if n_sp_val is not None else n_sp  # to override n_sp for val dataset
 
             if rotated_angle != 0:

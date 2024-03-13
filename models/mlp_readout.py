@@ -20,8 +20,8 @@ class MLPReadout(nn.Module):
         self.FC_layers = nn.ModuleList(list_FC_layers)
         self.L = L
 
-        for layer in self.FC_layers:
-            nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+        # for layer in self.FC_layers:
+        #     nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
 
     def forward(self, g):
 
