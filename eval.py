@@ -50,11 +50,11 @@ class PaintedDateSet(Dataset):
         self.painted_imgs = []
         self.labels = labels
         for idx, (sp_intensity, _, sp_order, superpixels) in enumerate(sp_data):
-            patinte_img = np.zeros_like(images[idx])
+            painted_img = np.zeros_like(images[idx])
             for seg in sp_order:
                 mask = (superpixels == seg)
-                patinte_img[mask] = sp_intensity[seg]
-            self.painted_imgs.append(patinte_img)
+                painted_img[mask] = sp_intensity[seg]
+            self.painted_imgs.append(painted_img)
 
   
         
@@ -129,7 +129,7 @@ def eval_model(is_baseline):
         
     else:
         dataset_name = 'cifar10'
-        dataset_name = 'mnist'
+        # dataset_name = 'mnist'
         model = load_baseline(dataset_name)
 
         
