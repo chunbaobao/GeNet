@@ -74,8 +74,10 @@ def config_parser():
     parser.add_argument('--out', default='./out', type=str, help='path of output')
     # parser.add_argument('--snr_list', default=['20', '15',
     #                     '10', '5', '0'], nargs='+', help='snr_list')
-    # parser.add_argument('--model', default='gcn', type=str,
-    #                     choices=['gcn', 'gat', 'gatedgnc', 'mlp'], help='model select')
+    parser.add_argument('--model_name', default='GatedGCN', type=str,
+                        choices=['MLP', 'GAT', 'GatedGCN', 'GCN'], help='model_name')
+    parser.add_argument('--dataset_name', default='cifar10', type=str,
+                        choices=['cifar10', 'mnist'], help='dataset_name')
 
     return parser.parse_args()
 
