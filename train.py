@@ -122,7 +122,7 @@ def train_pipeline(model_name, dataset_name, params):
         hidden_dim = 146
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'sum'
+        readout = 'mean'
 
     if model_name == 'GAT':
         seed = 41
@@ -138,7 +138,7 @@ def train_pipeline(model_name, dataset_name, params):
         hidden_dim = 19
         out_dim = n_heads*hidden_dim
         dropout = 0.0
-        readout = 'sum'
+        readout = 'mean'
         print('True hidden dim:', out_dim)
 
     if model_name == 'MLP':
