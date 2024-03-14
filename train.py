@@ -370,7 +370,7 @@ def main():
     else:
         device = gpu_setup(False, 0)
 
-    models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
+    models = ['MLP', 'GAT', 'GatedGCN', 'GCN']
     datasets = ['cifar10', 'mnist']
 
     params = {}
