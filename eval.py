@@ -38,7 +38,7 @@ class PaintedDateSet(Dataset):
                     labels) if label.item() in valid_labels]
                 images = images[valid_indices]
                 labels = labels[valid_indices]
-            images = TF.rotate(torch.from_numpy(images), rotation, expand=True)
+            images = TF.rotate(torch.from_numpy(images), rotation, expand=False)
             images = images.numpy()
             
         n_images = len(dataset)
