@@ -6,7 +6,7 @@ Created on Tue Mar  17:00:00 2024
 """
 import os
 import torch
-import torch.nn as nn
+import gc
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
@@ -107,7 +107,7 @@ def train_pipeline(model_name, dataset_name, params):
         hidden_dim = 70
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'sum'
+        readout = 'mean'
 
     if model_name == 'GCN':
         seed = 41
@@ -127,7 +127,7 @@ def train_pipeline(model_name, dataset_name, params):
     if model_name == 'GAT':
         seed = 41
         epochs = 1000
-        batch_size = 5
+        batch_size = 50
         init_lr = 5e-5
         lr_reduce_factor = 0.5
         lr_schedule_patience = 25
@@ -147,8 +147,8 @@ def train_pipeline(model_name, dataset_name, params):
         batch_size = 5
         init_lr = 5e-4
         lr_reduce_factor = 0.5
-        lr_schedule_patience = 25
-        min_lr = 1e-6
+        lr_schedule_patience = 10
+        min_lr = 1e-5
         weight_decay = 0
         # # MEAN
         # gated = False
@@ -163,7 +163,7 @@ def train_pipeline(model_name, dataset_name, params):
         hidden_dim = 150
         out_dim = hidden_dim
         dropout = 0.0
-        readout = 'sum'
+        readout = 'mean'
 
     params['seed'] = seed
     params['epochs'] = epochs
@@ -355,6 +355,10 @@ def train_pipeline(model_name, dataset_name, params):
         import yaml
         yaml.dump(dict_yaml, f)
 
+    del model, optimizer, scheduler, train_loader, val_loader, test_loader
+    del trainset, valset, testset
+    del writer
+
 
 def main():
     args = config_parser()
@@ -367,6 +371,7 @@ def main():
         device = gpu_setup(False, 0)
 
     models = ['GCN', 'GAT', 'GatedGCN', 'MLP']
+    models = ['GAT','GatedGCN']
     datasets = ['cifar10']
 
     params = {}
@@ -378,6 +383,7 @@ def main():
     for model_name in models:
         for dataset_name in datasets:
             train_pipeline(model_name=model_name, dataset_name=dataset_name, params=params)
+            gc.collect()
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ from models.mlp import MLPNet
 from models.mlp_readout import MLPReadout
 import torch.nn as nn
 import channel
-
+from models.resnet import resnet_cifar10, resnet_mnist
 
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
@@ -45,12 +45,15 @@ class GeNet(nn.Module):
         }
         return models[MODEL_NAME](net_params)
 
-    def set_channel(self, snr):
-        self.channel = channel.Channel(snr)
+    def set_channel(self, snr=None):
+        if snr is None:
+            self.channel = None
+        else:
+            self.channel = channel.Channel(snr)
 
     def forward(self, g, h, e):
         g = self.encoder(g, h, e)
-        if hasattr(self, 'channel'):
+        if hasattr(self, 'channel') and self.channel is not None:
             g = self.channel(g)
         hg = self.decoder(g)
         return hg
@@ -61,3 +64,10 @@ class GeNet(nn.Module):
         if is_constrain:
             loss = loss + self.decoder.constrain_loss() * k
         return loss
+
+def load_baseline(dataset_name):
+    if dataset_name == 'mnist':
+        model = resnet_mnist()
+    else:
+        model = resnet_cifar10()
+    return model
