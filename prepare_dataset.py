@@ -337,9 +337,16 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                 images = images.numpy()
 
         n_images = len(dataset)
-        with mp.Pool() as pool:
-            self.sp_data = pool.map(
-                process_image, [(images[i], n_sp, compactness, True, i, dataset_name) for i in range(n_images)])
+        # with mp.Pool() as pool:
+        #     self.sp_data = pool.map(
+        #         process_image, [(images[i], n_sp, compactness, True, i, dataset_name) for i in range(n_images)])
+            
+        self.sp_data = []
+        for i in range(n_images):
+            self.sp_data.append(process_image((images[i], n_sp, compactness, True, i, dataset_name)))            
+            
+            
+            
         self.graph_labels = torch.LongTensor(labels)
 
         self.use_mean_px = use_mean_px
