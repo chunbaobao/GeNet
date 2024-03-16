@@ -111,6 +111,11 @@ class ResNet_CIFAR10(nn.Module):
             self.channel = None
         else:
             self.channel = channel.Channel(snr)
+            
+    def loss(self, pred, label):
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(pred, label)
+        return loss
 
 
 class ResidualBlock(nn.Module):
@@ -162,6 +167,11 @@ class ResNet_MNIST(nn.Module):
         x = self.fc(x)
 
         return x
+    
+    def loss(self, pred, label):
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(pred, label)
+        return loss
 
 def resnet_cifar10():
     return ResNet_CIFAR10(BasicBlock, [3, 3, 3])
@@ -175,7 +185,7 @@ def resnet_mnist():
 
 if __name__ == '__main__':
     dataset_names = ['mnist','cifar10']
-    dataset_names = ['cifar10']
+    dataset_names = ['mnist']
     snr = 0
     for dataset_name in dataset_names:
         if dataset_name == 'mnist':

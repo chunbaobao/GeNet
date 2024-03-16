@@ -10,6 +10,7 @@ from models.mlp_readout import MLPReadout
 import torch.nn as nn
 import channel
 from models.resnet import resnet_cifar10, resnet_mnist
+import torch
 
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
@@ -68,6 +69,8 @@ class GeNet(nn.Module):
 def load_baseline(dataset_name):
     if dataset_name == 'mnist':
         model = resnet_mnist()
+        model.load_state_dict(torch.load('models/resnet_mnist.pth'))
     else:
         model = resnet_cifar10()
+        model.load_state_dict(torch.load('models/resnet_cifar10.pth'))
     return model
