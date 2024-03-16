@@ -381,10 +381,15 @@ def main():
     params['rotated_angle'] = 0
     params['n_sp_test'] = None
     params['snr'] = None
-    for model_name in models:
-        for dataset_name in datasets:
-            train_pipeline(model_name=model_name, dataset_name=dataset_name, params=params)
-            gc.collect()
+    
+    train_pipeline(model_name=args.model_name, dataset_name=args.dataset_name, params=params)
+    
+
+    # * train for all models and datasets
+    # for model_name in models:
+    #     for dataset_name in datasets:
+    #         train_pipeline(model_name=model_name, dataset_name=dataset_name, params=params)
+    #         gc.collect()
 
 
 if __name__ == '__main__':
