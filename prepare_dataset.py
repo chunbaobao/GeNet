@@ -342,7 +342,7 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                     images = images.permute(0,2,3,1)
                 images = images.numpy()
 
-        n_images = len(dataset)
+        n_images = len(images)
         
         with mp.Pool() as pool:
             self.sp_data = pool.map(
