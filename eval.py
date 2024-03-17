@@ -33,7 +33,7 @@ def evaluate_baseline(model, device, test_loader):
 
 
 class PaintedDateSet(Dataset):
-    def __init__(self, dataset_name, rotation = 0):
+    def __init__(self, dataset_name, rotated_angle = 0, is_plot = False):
         data_path = '../dataset'
         if dataset_name == 'mnist':
             self.img_size = 28
@@ -48,17 +48,22 @@ class PaintedDateSet(Dataset):
             dataset = datasets.CIFAR10(root=data_path, train=False, download=False)
         else:
             raise Exception('Invalid dataset name')
+        # N * H * W (* C)
         images = dataset.data.numpy() if isinstance(dataset.data, torch.Tensor) else dataset.data
         labels = dataset.targets
-        if rotation != 0:
+        if rotated_angle != 0:
             if dataset_name == 'mnist':
                 # 6 and 9 are unrecognizable when rotated
                 valid_labels = [i for i in range(10) if i != 6 and i != 9]
                 valid_indices = [i for i, label in enumerate(
                     labels) if label.item() in valid_labels]
-                images = images[valid_indices]
-                labels = labels[valid_indices]
-            images = TF.rotate(torch.from_numpy(images), rotation, expand=False)
+                images = images[valid_indices] if not is_plot else images
+                labels = labels[valid_indices] if not is_plot else labels
+                images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
+            else:
+                # N * C * H * W
+                images = TF.rotate(torch.from_numpy(images).permute(0,3,1,2), rotated_angle, expand=False)
+                images = images.permute(0,2,3,1)
             images = images.numpy()
             
         n_images = len(images)
@@ -74,13 +79,13 @@ class PaintedDateSet(Dataset):
         self.painted_imgs = []
         self.labels = labels
         for idx, (sp_intensity, _, sp_order, superpixels) in enumerate(sp_data):
-            painted_img = np.zeros_like(images[idx], dtype=np.float32)
+            painted_img = np.zeros_like(images[idx], dtype=np.float32) # H * W (* C)
             for seg in sp_order:
                 mask = (superpixels == seg)
                 painted_img[mask] = sp_intensity[seg]
-            painted_img = painted_img[:,:,None] if painted_img.ndim == 2 else painted_img
+            painted_img = painted_img[:,:,None] if painted_img.ndim == 2 else painted_img # H * W * C
             painted_img = torch.from_numpy(painted_img)
-            painted_img = painted_img.permute((2, 0, 1))
+            painted_img = painted_img.permute((2, 0, 1)) #　C * H * W
             self.painted_imgs.append(painted_img)
 
   
@@ -103,13 +108,13 @@ def eval_model(device):
 
     print('evaluating GNN model')
     # * model_path need to change
-    model_path = './out/checkpoints/GatedGCN_CIFAR10_GPU1_01h45m26s_on_Mar_07_2024/xxx.pkl'
+    model_path = 'out/checkpoints/GATEDGCN_CIFAR10_06h53m54s_on_Mar_15_2024_PC/epoch_252.pkl'
 
     # load config from train.py
-    config_path = os.path.dirname(model_path).replace('checkpoint', 'config') + 'txt'
+    config_path = os.path.dirname(model_path).replace('checkpoint', 'config') + '.yaml'
     with open(config_path, 'r') as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-        print(config)
+        config = yaml.load(f, Loader=yaml.UnsafeLoader)
+        # print(config)
         net_params = config['net_params']
         model_name = config['model_name']
         dataset_name = config['dataset_name']
@@ -117,18 +122,19 @@ def eval_model(device):
         
     # load model
     model = GeNet(model_name, net_params)
+    model.to(device)
     model.load_state_dict(torch.load(model_path))
     
     # for snr
     print('evaluating snr...')
-    testset = TestDataset(dataset_name)
+    testset = TestDataset(dataset_name).test
     test_loader = DataLoader(
-        testset, batch_size=params['batch_size'], shuffle=False, collate_fn=collate)
-    if os.path.exists('./out/eval/snr'):
+        testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
+    if not os.path.exists('./out/eval/snr'):
         os.makedirs('./out/eval/snr')
     writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}'.
                             format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
-    for snr in range(-20, 31, 1):
+    for snr in range(-50, 31, 1):
         model.set_channel(snr)
         test_loss, test_acc = evaluate_network(model, device, test_loader)
         writer.add_scalar('test_loss/snr', test_loss, snr)
@@ -138,13 +144,13 @@ def eval_model(device):
     
     # for rotation
     print('evaluating rotation...')
-    if os.path.exists('./out/eval/rotation'):
+    if not os.path.exists('./out/eval/rotation'):
         os.makedirs('./out/eval/rotation')
     writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}'.
                             format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
-    for rotation in range(0, 180, 5):
-        testset = TestDataset(dataset_name, rotation)
-        test_loader = DataLoader(testset, batch_size=8, shuffle=False, collate_fn=collate)
+    for rotation in range(0, 360, 1):
+        testset = TestDataset(dataset_name, rotation).test
+        test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
         model.set_channel(None)
         test_loss, test_acc = evaluate_network(model, device, test_loader)
         writer.add_scalar('test_loss/rotation', test_loss, rotation)
@@ -170,8 +176,8 @@ def eval_baseline(device, dataset_name, is_paint = True):
     print('evaluating snr...')
     if not os.path.exists('./out/eval/snr'):
         os.makedirs('./out/eval/snr')
-    writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+    writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}_{}'.
+                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y'), is_paint))
     if is_paint:
         testset = PaintedDateSet(dataset_name)
         
@@ -181,8 +187,8 @@ def eval_baseline(device, dataset_name, is_paint = True):
         else:
             testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
         
-    for snr in range(-30, 50, 1):
-        test_loader = DataLoader(testset, batch_size=32, shuffle=False)   
+    for snr in range(-50, 31, 1):
+        test_loader = DataLoader(testset, batch_size=32, shuffle=False, collate_fn=collate)   
         model.set_channel(snr)
         test_acc = evaluate_baseline(model, device, test_loader)
         writer.add_scalar('test_acc/snr', test_acc, snr)
@@ -193,9 +199,9 @@ def eval_baseline(device, dataset_name, is_paint = True):
     print('evaluating rotation...')
     if not os.path.exists('./out/eval/rotation'):
         os.makedirs('./out/eval/rotation')
-    writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
-    for rotation in range(0, 180, 5):
+    writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}_{}'.
+                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y'), is_paint))
+    for rotation in range(0, 360, 1):
         if is_paint:
             testset = PaintedDateSet(dataset_name, rotation)
         else:
@@ -223,12 +229,12 @@ def main():
         device = gpu_setup(False, 0)
         
     # for GNN models    
-    # eval_model(device)
+    eval_model(device)
     
-    # for baseline models
-    for dataset_name in ['mnist', 'cifar10']:
-        for is_paint in [True, False]:
-            eval_baseline(device, dataset_name, is_paint=is_paint)
+    # # for baseline models
+    # for dataset_name in ['mnist', 'cifar10']:
+    #     for is_paint in [True, False]:
+    #         eval_baseline(device, dataset_name, is_paint=is_paint)
 
 
 if __name__ == '__main__':

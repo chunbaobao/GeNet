@@ -13,7 +13,7 @@ class Channel(nn.Module):
         if isinstance(graph_or_tensor, dgl.DGLGraph):
             # z_hat : (num_nodes, feature_dim)
             z_hat = graph_or_tensor.ndata['h']
-            k = torch.prod(torch.tensor(z_hat.shape[1:]))
+            k = torch.prod(torch.tensor(z_hat.shape)) / graph_or_tensor.batch_size
             sig_pwr = torch.sum(torch.abs(z_hat).square(), dim=1, keepdim=True) / k
             noi_pwr = sig_pwr / (10 ** (self.snr / 10))
             noise = torch.randn_like(z_hat) * torch.sqrt(noi_pwr)

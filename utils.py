@@ -60,7 +60,7 @@ def split_dataset(labels, valid_split=0.1):
     return train_idx, valid_idx
 
 
-def collate(self, samples):
+def collate(samples):
     # The input samples is a list of pairs (graph, label).
     graphs, labels = map(list, zip(*samples))
     labels = torch.tensor(np.array(labels))

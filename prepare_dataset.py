@@ -91,53 +91,6 @@ def compute_edges_list(A, kth=8+1):
             knns = knns[knns != np.arange(num_nodes)[:, None]].reshape(num_nodes, -1)
     return knns, knn_values  # NEW
 
-
-class DGLFormDataset(torch.utils.data.Dataset):
-    """
-        DGLFormDataset wrapping graph list and label list as per pytorch Dataset.
-        *lists (list): lists of 'graphs' and 'labels' with same len().
-    """
-
-    def __init__(self, *lists):
-        assert all(len(lists[0]) == len(li) for li in lists)
-        self.lists = lists
-        self.graph_lists = lists[0]
-        self.graph_labels = lists[1]
-
-    def __getitem__(self, index):
-        return tuple(li[index] for li in self.lists)
-
-    def __len__(self):
-        return len(self.lists[0])
-
-
-# refer to benchmarking-gnns
-def self_loop(g):
-    """
-        Utility function only, to be used only when necessary as per user self_loop flag
-        : Overwriting the function dgl.transform.add_self_loop() to not miss ndata['feat'] and edata['feat']
-
-
-        This function is called inside a function in SuperPixDataset class.
-    """
-    new_g = dgl.graph([])
-    new_g.add_nodes(g.number_of_nodes())
-    new_g.ndata['feat'] = g.ndata['feat']
-
-    src, dst = g.all_edges(order="eid")
-    src = dgl.backend.zerocopy_to_numpy(src)
-    dst = dgl.backend.zerocopy_to_numpy(dst)
-    non_self_edges_idx = src != dst
-    nodes = np.arange(g.number_of_nodes())
-    new_g.add_edges(src[non_self_edges_idx], dst[non_self_edges_idx])
-    new_g.add_edges(nodes, nodes)
-
-    # This new edata is not used since this function gets called only for GCN, GAT
-    # However, we need this for the generic requirement of ndata and edata
-    new_g.edata['feat'] = torch.zeros(new_g.number_of_edges())
-    return new_g
-
-
 class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
 
     def __init__(self, name):
@@ -185,6 +138,55 @@ class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
         batched_graph = dgl.batch(graphs)
 
         return batched_graph, labels
+
+
+class DGLFormDataset(SuperPixDataset):
+    """
+        DGLFormDataset wrapping graph list and label list as per pytorch Dataset.
+        *lists (list): lists of 'graphs' and 'labels' with same len().
+    """
+
+    def __init__(self, *lists):
+        assert all(len(lists[0]) == len(li) for li in lists)
+        self.lists = lists
+        self.graph_lists = lists[0]
+        self.graph_labels = lists[1]
+
+    def __getitem__(self, index):
+        return tuple(li[index] for li in self.lists)
+
+    def __len__(self):
+        return len(self.lists[0])
+
+
+# refer to benchmarking-gnns
+def self_loop(g):
+    """
+        Utility function only, to be used only when necessary as per user self_loop flag
+        : Overwriting the function dgl.transform.add_self_loop() to not miss ndata['feat'] and edata['feat']
+
+
+        This function is called inside a function in SuperPixDataset class.
+    """
+    new_g = dgl.graph([])
+    new_g.add_nodes(g.number_of_nodes())
+    new_g.ndata['feat'] = g.ndata['feat']
+
+    src, dst = g.all_edges(order="eid")
+    src = dgl.backend.zerocopy_to_numpy(src)
+    dst = dgl.backend.zerocopy_to_numpy(dst)
+    non_self_edges_idx = src != dst
+    nodes = np.arange(g.number_of_nodes())
+    new_g.add_edges(src[non_self_edges_idx], dst[non_self_edges_idx])
+    new_g.add_edges(nodes, nodes)
+
+    # This new edata is not used since this function gets called only for GCN, GAT
+    # However, we need this for the generic requirement of ndata and edata
+    new_g.edata['feat'] = torch.zeros(new_g.number_of_edges())
+    return new_g
+
+
+
 
 
 class TestDataset(SuperPixDataset):
@@ -333,17 +335,22 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                         labels) if label.item() in valid_labels]
                     images = images[valid_indices]
                     labels = labels[valid_indices]
-                images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=True)
+                    images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
+                else:
+                    # N * C * H * W
+                    images = TF.rotate(torch.from_numpy(images).permute(0,3,1,2), rotated_angle, expand=False)
+                    images = images.permute(0,2,3,1)
                 images = images.numpy()
 
         n_images = len(dataset)
-        # with mp.Pool() as pool:
-        #     self.sp_data = pool.map(
-        #         process_image, [(images[i], n_sp, compactness, True, i, dataset_name) for i in range(n_images)])
+        
+        with mp.Pool() as pool:
+            self.sp_data = pool.map(
+                process_image, [(images[i], n_sp, compactness, True, i, dataset_name) for i in range(n_images)])
             
-        self.sp_data = []
-        for i in range(n_images):
-            self.sp_data.append(process_image((images[i], n_sp, compactness, True, i, dataset_name)))            
+        # self.sp_data = []
+        # for i in range(n_images):
+        #     self.sp_data.append(process_image((images[i], n_sp, compactness, True, i, dataset_name)))            
             
             
             
