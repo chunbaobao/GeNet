@@ -109,6 +109,7 @@ def eval_model(device):
     print('evaluating GNN model')
     # * model_path need to change
     model_path = 'out/checkpoints/GATEDGCN_CIFAR10_06h53m54s_on_Mar_15_2024_PC/epoch_252.pkl'
+    model_path = 'out/checkpoints/GATEDGCN_MNIST_12h18m11s_on_Mar_15_2024_PC/epoch_198.pkl'
 
     # load config from train.py
     config_path = os.path.dirname(model_path).replace('checkpoint', 'config') + '.yaml'

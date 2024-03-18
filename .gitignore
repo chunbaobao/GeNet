@@ -6,7 +6,7 @@ __pycache__/
 test.*
 *.code-workspace
 data/*.pkl
-demo/*
+
 # C extensions
 *.so
 
