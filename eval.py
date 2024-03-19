@@ -126,39 +126,62 @@ def eval_model(device):
     model.to(device)
     model.load_state_dict(torch.load(model_path))
     
-    # for snr
-    print('evaluating snr...')
-    testset = TestDataset(dataset_name).test
-    test_loader = DataLoader(
-        testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
-    if not os.path.exists('./out/eval/snr'):
-        os.makedirs('./out/eval/snr')
-    writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
-    for snr in range(-50, 31, 1):
-        model.set_channel(snr)
-        test_loss, test_acc = evaluate_network(model, device, test_loader)
-        writer.add_scalar('test_loss/snr', test_loss, snr)
-        writer.add_scalar('test_acc/snr', test_acc, snr)
-    writer.close()
+    # # for snr
+    # print('evaluating snr...')
+    # testset = TestDataset(dataset_name).test
+    # test_loader = DataLoader(
+    #     testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
+    # if not os.path.exists('./out/eval/snr'):
+    #     os.makedirs('./out/eval/snr')
+    # writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}'.
+    #                         format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+    # for snr in range(-50, 31, 1):
+    #     model.set_channel(snr)
+    #     test_loss, test_acc = evaluate_network(model, device, test_loader)
+    #     writer.add_scalar('test_loss/snr', test_loss, snr)
+    #     writer.add_scalar('test_acc/snr', test_acc, snr)
+    # writer.close()
     
     
-    # for rotation
-    print('evaluating rotation...')
-    if not os.path.exists('./out/eval/rotation'):
-        os.makedirs('./out/eval/rotation')
-    writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}'.
+    # # for rotation
+    # print('evaluating rotation...')
+    # if not os.path.exists('./out/eval/rotation'):
+    #     os.makedirs('./out/eval/rotation')
+    # writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}'.
+    #                         format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+    # for rotation in range(0, 360, 1):
+    #     testset = TestDataset(dataset_name, rotation).test
+    #     test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
+    #     model.set_channel(None)
+    #     test_loss, test_acc = evaluate_network(model, device, test_loader)
+    #     writer.add_scalar('test_loss/rotation', test_loss, rotation)
+    #     writer.add_scalar('test_acc/rotation', test_acc, rotation)
+    #     del testset, test_loader
+    #     gc.collect() 
+    # writer.close()
+    
+    # for n_sp
+    print('evaluating n_sp...')
+    if not os.path.exists('./out/eval/n_sp'):
+        os.makedirs('./out/eval/n_sp')
+    writer = SummaryWriter(log_dir='./out/eval/n_sp/{}_{}_{}'.
                             format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
-    for rotation in range(0, 360, 1):
-        testset = TestDataset(dataset_name, rotation).test
+    if dataset_name == 'mnist':
+        n_sp_range = range(30, 101, 1)
+    else:
+        n_sp_range = range(50, 301, 1)
+        
+    for n_sp in n_sp_range:
+        testset = TestDataset(dataset_name, n_sp_test = n_sp).test
         test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
         model.set_channel(None)
         test_loss, test_acc = evaluate_network(model, device, test_loader)
-        writer.add_scalar('test_loss/rotation', test_loss, rotation)
-        writer.add_scalar('test_acc/rotation', test_acc, rotation)
+        writer.add_scalar('test_loss/n_sp', test_loss, n_sp)
+        writer.add_scalar('test_acc/n_sp', test_acc, n_sp)
         del testset, test_loader
         gc.collect() 
     writer.close()
+        
         
         
 
