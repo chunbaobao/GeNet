@@ -108,7 +108,7 @@ def eval_model(device):
 
     print('evaluating GNN model')
     # * model_path need to change
-    model_path = 'out/checkpoints/GATEDGCN_CIFAR10_06h53m54s_on_Mar_15_2024_PC/epoch_252.pkl'
+    model_path = 'out/checkpoints/GAT_CIFAR10_03h57m06s_on_Mar_15_2024_PC/epoch_449.pkl'
     # model_path = 'out/checkpoints/GATEDGCN_MNIST_12h18m11s_on_Mar_15_2024_PC/epoch_198.pkl'
 
     # load config from train.py
@@ -161,26 +161,26 @@ def eval_model(device):
     writer.close()
     
     # for n_sp
-    # print('evaluating n_sp...')
-    # if not os.path.exists('./out/eval/n_sp'):
-    #     os.makedirs('./out/eval/n_sp')
-    # writer = SummaryWriter(log_dir='./out/eval/n_sp/{}_{}_{}'.
-    #                         format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
-    # if dataset_name == 'mnist':
-    #     n_sp_range = range(20, 91, 1)
-    # else:
-    #     n_sp_range = range(30, 131, 1)
+    print('evaluating n_sp...')
+    if not os.path.exists('./out/eval/n_sp'):
+        os.makedirs('./out/eval/n_sp')
+    writer = SummaryWriter(log_dir='./out/eval/n_sp/{}_{}_{}'.
+                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+    if dataset_name == 'mnist':
+        n_sp_range = range(20, 91, 1)
+    else:
+        n_sp_range = range(30, 131, 1)
         
-    # for n_sp in n_sp_range:
-    #     testset = TestDataset(dataset_name, n_sp_test = n_sp).test
-    #     test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
-    #     model.set_channel(None)
-    #     test_loss, test_acc = evaluate_network(model, device, test_loader)
-    #     writer.add_scalar('test_loss/n_sp', test_loss, n_sp)
-    #     writer.add_scalar('test_acc/n_sp', test_acc, n_sp)
-    #     del testset, test_loader
-    #     gc.collect() 
-    # writer.close()
+    for n_sp in n_sp_range:
+        testset = TestDataset(dataset_name, n_sp_test = n_sp).test
+        test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
+        model.set_channel(None)
+        test_loss, test_acc = evaluate_network(model, device, test_loader)
+        writer.add_scalar('test_loss/n_sp', test_loss, n_sp)
+        writer.add_scalar('test_acc/n_sp', test_acc, n_sp)
+        del testset, test_loader
+        gc.collect() 
+    writer.close()
         
         
         
