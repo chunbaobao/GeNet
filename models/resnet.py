@@ -27,7 +27,7 @@ from torchvision import datasets, transforms
 import torch
 from torch.utils.data import DataLoader
 import channel
-
+from utils import view_model_param
 
 
 class LambdaLayer(nn.Module):
@@ -184,28 +184,29 @@ def resnet_mnist():
 
 
 if __name__ == '__main__':
-    dataset_names = ['mnist','cifar10']
-    dataset_names = ['mnist']
+    dataset_name = 'mnist'
+    dataset_name = 'cifar10'
     snr = 0
-    for dataset_name in dataset_names:
-        if dataset_name == 'mnist':
-            model = resnet_mnist()
-            dataset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
-        else:
-            model = resnet_cifar10()
-            dataset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
-        
-        model.load_state_dict(torch.load('./models/resnet_{}.pth'.format(dataset_name)))
-        model.set_channel(snr)
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for data, labels in dataloader:
-                outputs = model(data)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+    if dataset_name == 'mnist':
+        model = resnet_mnist()
+        dataset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
+    else:
+        model = resnet_cifar10()
+        dataset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
+            
+            
+    _ = view_model_param('resnet_{}'.format(dataset_name), model)
+    model.load_state_dict(torch.load('./models/resnet_{}.pth'.format(dataset_name)))
+    model.set_channel(snr)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data, labels in dataloader:
+            outputs = model(data)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
 
-        accuracy = correct / total
-        print('Accuracy on {} dataset: {:.2f}%'.format(dataset_name.upper(), accuracy * 100))
+    accuracy = correct / total
+    print('Accuracy on {} dataset: {:.2f}%'.format(dataset_name.upper(), accuracy * 100))
