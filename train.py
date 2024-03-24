@@ -77,7 +77,7 @@ def config_parser():
     parser.add_argument('--model_name', default='GatedGCN', type=str,
                         choices=['MLP', 'GAT', 'GatedGCN', 'GCN'], help='model_name')
     parser.add_argument('--dataset_name', default='cifar10', type=str,
-                        choices=['cifar10', 'mnist'], help='dataset_name')
+                        choices=['cifar10', 'mnist', 'fashionmnist'], help='dataset_name')
 
     return parser.parse_args()
 

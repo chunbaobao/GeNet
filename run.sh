@@ -1,7 +1,7 @@
 
 MODELS=("MLP" "GAT" "GatedGCN" "GCN")
 
-DATASETS=("cifar10" "mnist")
+DATASETS=("cifar10" "mnist" "fashionmnist")
 
 
 OUTPUT="./out"
