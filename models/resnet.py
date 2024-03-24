@@ -1,6 +1,7 @@
 # refers to https://github.com/akamaster/pytorch_resnet_cifar10/blob/master/resnet.py
 # https://github.com/S-HuaBomb/mnist-classification-in-action
 # https://github.com/ThunderVVV/pytorch_resnet_cifar10
+# https://github.com/AmitaiBiton/FashionMNIST_resnet18
 '''
 name      | layers | params
 ResNet20  |    20  | 0.27M
@@ -23,7 +24,7 @@ author, Yerlan Idelbayev.
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-from torchvision import datasets, transforms
+from torchvision import datasets, transforms, models
 import torch
 from torch.utils.data import DataLoader
 import channel
@@ -173,6 +174,39 @@ class ResNet_MNIST(nn.Module):
         loss = criterion(pred, label)
         return loss
 
+class ResNet_FashionMNIST(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.resnet = models.resnet18(num_classes=10)
+        self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(2, 2), padding=(3, 3), bias=False)
+        
+    def set_channel(self, snr=None):
+        if snr is None:
+            self.channel = None
+        else:
+            self.channel = channel.Channel(snr)
+            
+    def forward(self, x):
+        x = self.resnet.conv1(x)
+        x = self.resnet.bn1(x)
+        x = self.resnet.relu(x)
+        x = self.resnet.maxpool(x)
+        x = self.resnet.layer1(x)
+        x = self.resnet.layer2(x)
+        x = self.resnet.layer3(x)
+        x = self.resnet.layer4(x)
+        x = self.resnet.avgpool(x)
+        x = torch.flatten(x, 1)
+        if hasattr(self, 'channel') and self.channel is not None:
+            x = self.channel(x)
+        x = self.resnet.fc(x)
+        return x
+    
+    def loss(self, pred, label):
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(pred, label)
+        return loss
+
 def resnet_cifar10():
     return ResNet_CIFAR10(BasicBlock, [3, 3, 3])
 
@@ -180,7 +214,7 @@ def resnet_mnist():
     return ResNet_MNIST()
 
 def resnet_fashionmnist():
-    return ResNet_MNIST()
+    return ResNet_FashionMNIST()
 
 
 
@@ -199,8 +233,7 @@ if __name__ == '__main__':
         elif dataset_name == 'fashionmnist':
             model = resnet_fashionmnist()
             dataset = datasets.FashionMNIST(root='../dataset', train=False, download=False, 
-                                            transform=transforms.Compose([transforms.ToTensor(),
-                                                                          transforms.Normalize([0.5], [0.5])]))
+                                            transform=transforms.ToTensor())
         
         model.load_state_dict(torch.load('./models/resnet_{}.pth'.format(dataset_name)))
         model.set_channel(snr)

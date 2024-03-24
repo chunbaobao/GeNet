@@ -72,7 +72,7 @@ class PaintedDateSet(Dataset):
             images = images.numpy()
             
         n_images = len(images)
-        with mp.Pool() as pool:
+        with mp.Pool(10) as pool:
            sp_data = pool.map(
                 process_image, [(images[i], n_sp, compactness, False, i, dataset_name) for i in range(n_images)])
 
@@ -213,11 +213,17 @@ def eval_baseline(device, dataset_name, is_paint = True):
     else:
         if dataset_name == 'mnist':
             testset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
-        else:
+        elif dataset_name == 'cifar10':
             testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
+        elif dataset_name == 'fashionmnist':
+            testset = datasets.FashionMNIST(root='../dataset', train=False, download=False, 
+                                            transform=transforms.ToTensor())
+        else:
+            raise Exception('Invalid dataset name')
+            
         
     for snr in range(-50, 31, 1):
-        test_loader = DataLoader(testset, batch_size=32, shuffle=False, collate_fn=collate)   
+        test_loader = DataLoader(testset, batch_size=32, shuffle=False)   
         model.set_channel(snr)
         test_acc = evaluate_baseline(model, device, test_loader)
         writer.add_scalar('test_acc/snr', test_acc, snr)
@@ -237,8 +243,12 @@ def eval_baseline(device, dataset_name, is_paint = True):
             transform = transforms.Compose([transforms.ToTensor(), transforms.Lambda(lambda x: TF.rotate(x, rotation))])
             if dataset_name == 'mnist':
                 testset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transform)
+            elif dataset_name == 'cifar10':
+                testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transform)       
+            elif dataset_name == 'fashionmnist':
+                testset = datasets.FashionMNIST(root='../dataset', train=False, download=False, transform=transform)
             else:
-                testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transform)            
+                raise Exception('Invalid dataset name')     
 
         test_loader = DataLoader(testset, batch_size=32, shuffle=False)   
         model.set_channel(None)
@@ -258,12 +268,13 @@ def main():
         device = gpu_setup(False, 0)
         
     # for GNN models    
-    eval_model(device)
+    # eval_model(device)
     
-    # # for baseline models
+    # for baseline models
     # for dataset_name in ['mnist', 'cifar10']:
-    #     for is_paint in [True, False]:
-    #         eval_baseline(device, dataset_name, is_paint=is_paint)
+    for dataset_name in ['fashionmnist']:
+        for is_paint in [True, False]:
+            eval_baseline(device, dataset_name, is_paint=is_paint)
 
 
 if __name__ == '__main__':
