@@ -238,7 +238,13 @@ def process_image(params):
     # n_sp_extracted = len(sp_indices)
 
     n_sp_extracted = n_sp + 1  # number of actually extracted superpixels (can be different from requested in SLIC)
-    n_sp_query = n_sp + (20 if dataset_name == 'mnist' else 50)  # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
+    if dataset_name == 'mnist':
+        n_sp_query = n_sp + 20
+    elif dataset_name == 'cifar10':
+        n_sp_query = n_sp + 50
+    else:
+        n_sp_query = n_sp + 30
+    # n_sp_query = n_sp + (20 if dataset_name == 'mnist' else 50)  # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
     while n_sp_extracted > n_sp:
         superpixels = slic(img, n_segments=n_sp_query, compactness=compactness, channel_axis = channel_axis, start_label = 0)
         sp_indices = np.unique(superpixels)
@@ -310,11 +316,11 @@ class Image2GraphDataset(torch.utils.data.Dataset):
             self.img_size = 32
             dataset = datasets.CIFAR10(root=dataset_dir, train=is_train, download=False)
 
-        # elif dataset_name == 'fashionmnist':
-        #     self.img_size = 28
-        #     n_sp = 75
-        #     compactness = .25
-        #     dataset = datasets.FashionMNIST(root=dataset_dir, train=is_train, download=False)
+        elif dataset_name == 'fashionmnist':
+            self.img_size = 28
+            n_sp = 75
+            compactness = .3
+            dataset = datasets.FashionMNIST(root=dataset_dir, train=is_train, download=False)
 
         else:
             raise Exception("Unknown dataset")
@@ -466,19 +472,19 @@ def main():
     if not os.path.isdir(args.out_dir):
         os.makedirs(args.out_dir)
 
-    if args.dataset == 'all':
-        names = ['cifar10', 'mnist']
-    elif args.dataset not in ['cifar10', 'mnist']:
-        raise Exception("Unknown dataset")
-    else:
-        names = [args.dataset]
-
     # if args.dataset == 'all':
-    #     names = ['fashionmnist', 'cifar10', 'mnist']
-    # elif args.dataset not in ['fashionmnist', 'cifar10', 'mnist']:
+    #     names = ['cifar10', 'mnist']
+    # elif args.dataset not in ['cifar10', 'mnist']:
     #     raise Exception("Unknown dataset")
     # else:
     #     names = [args.dataset]
+
+    if args.dataset == 'all':
+        names = ['fashionmnist', 'cifar10', 'mnist']
+    elif args.dataset not in ['fashionmnist', 'cifar10', 'mnist']:
+        raise Exception("Unknown dataset")
+    else:
+        names = [args.dataset]
 
     for name in names:
         if not check_file_exists(args.out_dir, name):
