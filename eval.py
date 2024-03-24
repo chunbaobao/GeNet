@@ -46,6 +46,11 @@ class PaintedDateSet(Dataset):
             compactness = 10
             self.img_size = 32
             dataset = datasets.CIFAR10(root=data_path, train=False, download=False)
+        elif dataset_name == 'fashionmnist':
+            dataset = datasets.FashionMNIST(root='../dataset', train=True, download=False)
+            self.img_size = 28
+            n_sp = 75
+            compactness = .3
         else:
             raise Exception('Invalid dataset name')
         # N * H * W (* C)

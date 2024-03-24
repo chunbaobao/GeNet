@@ -27,7 +27,7 @@ from torchvision import datasets, transforms
 import torch
 from torch.utils.data import DataLoader
 import channel
-
+from utils import view_model_param
 
 
 class LambdaLayer(nn.Module):
@@ -214,5 +214,5 @@ if __name__ == '__main__':
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-        accuracy = correct / total
-        print('Accuracy on {} dataset: {:.2f}%'.format(dataset_name.upper(), accuracy * 100))
+    accuracy = correct / total
+    print('Accuracy on {} dataset: {:.2f}%'.format(dataset_name.upper(), accuracy * 100))
