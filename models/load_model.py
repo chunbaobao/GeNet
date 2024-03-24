@@ -9,7 +9,7 @@ from models.mlp import MLPNet
 from models.mlp_readout import MLPReadout
 import torch.nn as nn
 import channel
-from models.resnet import resnet_cifar10, resnet_mnist
+from models.resnet import resnet_cifar10, resnet_mnist, resnet_fashionmnist
 import torch
 
 def GatedGCN(net_params):
@@ -70,7 +70,12 @@ def load_baseline(dataset_name):
     if dataset_name == 'mnist':
         model = resnet_mnist()
         model.load_state_dict(torch.load('models/resnet_mnist.pth'))
-    else:
+    elif dataset_name == 'cifar10':
         model = resnet_cifar10()
         model.load_state_dict(torch.load('models/resnet_cifar10.pth'))
+    elif dataset_name == 'fashionmnist':
+        model = resnet_fashionmnist()
+        model.load_state_dict(torch.load('models/resnet_fashionmnist.pth'))
+    else:
+        raise ValueError('Model {} not found'.format(dataset_name))
     return model

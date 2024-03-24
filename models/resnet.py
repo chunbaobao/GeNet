@@ -179,21 +179,28 @@ def resnet_cifar10():
 def resnet_mnist():
     return ResNet_MNIST()
 
+def resnet_fashionmnist():
+    return ResNet_MNIST()
 
 
 
 
 if __name__ == '__main__':
     dataset_names = ['mnist','cifar10']
-    dataset_names = ['mnist']
-    snr = 0
+    dataset_names = ['fashionmnist']
+    snr = 20
     for dataset_name in dataset_names:
         if dataset_name == 'mnist':
             model = resnet_mnist()
             dataset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
-        else:
+        elif dataset_name == 'cifar10':
             model = resnet_cifar10()
             dataset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
+        elif dataset_name == 'fashionmnist':
+            model = resnet_fashionmnist()
+            dataset = datasets.FashionMNIST(root='../dataset', train=False, download=False, 
+                                            transform=transforms.Compose([transforms.ToTensor(),
+                                                                          transforms.Normalize([0.5], [0.5])]))
         
         model.load_state_dict(torch.load('./models/resnet_{}.pth'.format(dataset_name)))
         model.set_channel(snr)
