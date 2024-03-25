@@ -121,6 +121,8 @@ def eval_model(device):
     model_path = 'out/checkpoints/GAT_CIFAR10_03h57m06s_on_Mar_15_2024_PC/epoch_449.pkl'
     # model_path = 'out/checkpoints/GATEDGCN_MNIST_12h18m11s_on_Mar_15_2024_PC/epoch_198.pkl'
     model_path = 'out/checkpoints/GATEDGCN_FASHIONMNIST_21h37m48s_on_Mar_24_2024_PC/epoch_171.pkl'
+    model_path = 'out/checkpoints/MLP_FASHIONMNIST_15h00m29s_on_Mar_24_2024_PC/epoch_99.pkl'
+    model_path = 'out/checkpoints/GCN_FASHIONMNIST_15h51m07s_on_Mar_24_2024_wz/epoch_150.pkl'
 
     # load config from train.py
     config_path = os.path.dirname(model_path).replace('checkpoint', 'config') + '.yaml'
@@ -135,7 +137,7 @@ def eval_model(device):
     # load model
     model = GeNet(model_name, net_params)
     model.to(device)
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, map_location=device))
     
     # # for snr
     print('evaluating snr...')
@@ -233,7 +235,7 @@ def eval_baseline(device, dataset_name, is_paint = True):
             
         
     for snr in range(-50, 31, 1):
-        test_loader = DataLoader(testset, batch_size=32, shuffle=False)   
+        test_loader = DataLoader(testset, batch_size=16, shuffle=False)   
         model.set_channel(snr)
         test_acc = evaluate_baseline(model, device, test_loader)
         writer.add_scalar('test_acc/snr', test_acc, snr)
@@ -260,7 +262,7 @@ def eval_baseline(device, dataset_name, is_paint = True):
             else:
                 raise Exception('Invalid dataset name')     
 
-        test_loader = DataLoader(testset, batch_size=32, shuffle=False)   
+        test_loader = DataLoader(testset, batch_size=16, shuffle=False)   
         model.set_channel(None)
         test_acc = evaluate_baseline(model, device, test_loader)
         writer.add_scalar('test_acc/rotation', test_acc, rotation)
