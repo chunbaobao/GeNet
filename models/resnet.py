@@ -220,9 +220,8 @@ def resnet_fashionmnist():
 
 
 if __name__ == '__main__':
-    dataset_names = ['mnist','cifar10']
-    dataset_names = ['fashionmnist']
-    snr = 20
+    dataset_names = ['mnist', 'fashionmnist', 'cifar10']
+    snr = None
     for dataset_name in dataset_names:
         if dataset_name == 'mnist':
             model = resnet_mnist()

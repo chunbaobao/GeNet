@@ -65,14 +65,19 @@ class PaintedDateSet(Dataset):
                 images = images[valid_indices] if not is_plot else images
                 labels = labels[valid_indices] if not is_plot else labels
                 images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
-            else:
+            elif dataset_name == 'cifar10':
                 # N * C * H * W
                 images = TF.rotate(torch.from_numpy(images).permute(0,3,1,2), rotated_angle, expand=False)
                 images = images.permute(0,2,3,1)
+            elif dataset_name == 'fashionmnist':
+                images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
+            else:
+                raise Exception("Unknown dataset")
+            
             images = images.numpy()
             
         n_images = len(images)
-        with mp.Pool(10) as pool:
+        with mp.Pool() as pool:
            sp_data = pool.map(
                 process_image, [(images[i], n_sp, compactness, False, i, dataset_name) for i in range(n_images)])
 
@@ -115,6 +120,7 @@ def eval_model(device):
     # * model_path need to change
     model_path = 'out/checkpoints/GAT_CIFAR10_03h57m06s_on_Mar_15_2024_PC/epoch_449.pkl'
     # model_path = 'out/checkpoints/GATEDGCN_MNIST_12h18m11s_on_Mar_15_2024_PC/epoch_198.pkl'
+    model_path = 'out/checkpoints/GATEDGCN_FASHIONMNIST_21h37m48s_on_Mar_24_2024_PC/epoch_171.pkl'
 
     # load config from train.py
     config_path = os.path.dirname(model_path).replace('checkpoint', 'config') + '.yaml'
@@ -173,8 +179,12 @@ def eval_model(device):
                             format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
     if dataset_name == 'mnist':
         n_sp_range = range(20, 91, 1)
-    else:
+    elif dataset_name == 'cifar10':
         n_sp_range = range(30, 131, 1)
+    elif dataset_name == 'fashionmnist':
+        n_sp_range = range(20, 81, 1)
+    else:
+        raise Exception('Invalid dataset name')
         
     for n_sp in n_sp_range:
         testset = TestDataset(dataset_name, n_sp_test = n_sp).test
@@ -268,13 +278,13 @@ def main():
         device = gpu_setup(False, 0)
         
     # for GNN models    
-    # eval_model(device)
+    eval_model(device)
     
     # for baseline models
-    # for dataset_name in ['mnist', 'cifar10']:
-    for dataset_name in ['fashionmnist']:
-        for is_paint in [True, False]:
-            eval_baseline(device, dataset_name, is_paint=is_paint)
+    # # for dataset_name in ['mnist', 'cifar10']:
+    # for dataset_name in ['fashionmnist']:
+    #     for is_paint in [True, False]:
+    #         eval_baseline(device, dataset_name, is_paint=is_paint)
 
 
 if __name__ == '__main__':

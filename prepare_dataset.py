@@ -342,10 +342,15 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                     images = images[valid_indices]
                     labels = labels[valid_indices]
                     images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
-                else:
+                elif dataset_name == 'cifar10':
                     # N * C * H * W
                     images = TF.rotate(torch.from_numpy(images).permute(0,3,1,2), rotated_angle, expand=False)
                     images = images.permute(0,2,3,1)
+                elif dataset_name == 'fashionmnist':
+                    images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
+                else:
+                    raise Exception("Unknown dataset")
+                
                 images = images.numpy()
 
         n_images = len(images)
