@@ -121,8 +121,8 @@ def eval_model(device):
     model_path = 'out/checkpoints/GAT_CIFAR10_03h57m06s_on_Mar_15_2024_PC/epoch_449.pkl'
     # model_path = 'out/checkpoints/GATEDGCN_MNIST_12h18m11s_on_Mar_15_2024_PC/epoch_198.pkl'
     model_path = 'out/checkpoints/GATEDGCN_FASHIONMNIST_21h37m48s_on_Mar_24_2024_PC/epoch_171.pkl'
-    model_path = 'out/checkpoints/MLP_FASHIONMNIST_15h00m29s_on_Mar_24_2024_PC/epoch_99.pkl'
-    model_path = 'out/checkpoints/GCN_FASHIONMNIST_15h51m07s_on_Mar_24_2024_wz/epoch_150.pkl'
+    # model_path = 'out/checkpoints/MLP_FASHIONMNIST_15h00m29s_on_Mar_24_2024_PC/epoch_99.pkl'
+    # model_path = 'out/checkpoints/GCN_FASHIONMNIST_15h51m07s_on_Mar_24_2024_wz/epoch_150.pkl'
 
     # load config from train.py
     config_path = os.path.dirname(model_path).replace('checkpoint', 'config') + '.yaml'
@@ -133,6 +133,7 @@ def eval_model(device):
         model_name = config['model_name']
         dataset_name = config['dataset_name']
         params = config['params']
+        net_params['device'] = device
         
     # load model
     model = GeNet(model_name, net_params)
