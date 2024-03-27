@@ -1,7 +1,7 @@
 # GeNet
 
 This repo is the implementation of the paper "GeNet: A Graph Neural Network-based Anti-noise
-Task-Oriented Semantic Communication Paradigm" using PyTorch.
+Task-Oriented Semantic Communication Paradigm" (airxiv link: TBD) using PyTorch.
 ### Architecture
 General semantic communication paradigm:
 ![conv](./demo/conv.png)
@@ -25,6 +25,7 @@ The `prepare_dataset.py` script is used to convert images from CIFAR-10, MNIST, 
 python prepare_dataset.py # for all datasets
 python prepare_dataset.py --dataset $DATASET_NAME # for a specific dataset
 ```
+The `$DATASET_NAME.pkl` files will be saved in the `./data` directory by default.
 ### Training
 The `train.py` script is used to train the GeNet model.
 
