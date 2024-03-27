@@ -12,6 +12,7 @@ import channel
 from models.resnet import resnet_cifar10, resnet_mnist, resnet_fashionmnist
 import torch
 
+
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
 
@@ -65,6 +66,7 @@ class GeNet(nn.Module):
         if is_constrain:
             loss = loss + self.decoder.constrain_loss() * k
         return loss
+
 
 def load_baseline(dataset_name):
     if dataset_name == 'mnist':

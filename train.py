@@ -83,7 +83,7 @@ def config_parser():
 
 
 def train_pipeline(model_name, dataset_name, params):
-    
+
     print('-' * 89)
     print("Training {} on {} dataset".format(model_name, dataset_name))
     # """
@@ -371,7 +371,7 @@ def main():
     #     device = gpu_setup(True, 0)
     # else:
     #     device = gpu_setup(False, 0)
-    
+
     device = gpu_setup(True, 0)
 
     models = ['MLP', 'GAT', 'GatedGCN', 'GCN']
@@ -383,9 +383,8 @@ def main():
     params['rotated_angle'] = 0
     params['n_sp_test'] = None
     params['snr'] = None
-    
+
     train_pipeline(model_name=args.model_name, dataset_name=args.dataset_name, params=params)
-    
 
     # * train for all models and datasets
     # for model_name in models:

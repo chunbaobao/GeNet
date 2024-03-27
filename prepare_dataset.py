@@ -91,6 +91,7 @@ def compute_edges_list(A, kth=8+1):
             knns = knns[knns != np.arange(num_nodes)[:, None]].reshape(num_nodes, -1)
     return knns, knn_values  # NEW
 
+
 class SuperPixDataset(torch.utils.data.Dataset):  # ! load from pkl file
 
     def __init__(self, name):
@@ -186,9 +187,6 @@ def self_loop(g):
     return new_g
 
 
-
-
-
 class TestDataset(SuperPixDataset):
     def __init__(self, name, rotated_angle=0, n_sp_test=None):
         self.name = name
@@ -246,7 +244,8 @@ def process_image(params):
         n_sp_query = n_sp + 30
     # n_sp_query = n_sp + (20 if dataset_name == 'mnist' else 50)  # number of superpixels we ask to extract (larger to extract more superpixels - closer to the desired n_sp)
     while n_sp_extracted > n_sp:
-        superpixels = slic(img, n_segments=n_sp_query, compactness=compactness, channel_axis = channel_axis, start_label = 0)
+        superpixels = slic(img, n_segments=n_sp_query, compactness=compactness,
+                           channel_axis=channel_axis, start_label=0)
         sp_indices = np.unique(superpixels)
         n_sp_extracted = len(sp_indices)
         n_sp_query -= 1  # reducing the number of superpixels until we get <= n superpixels
@@ -344,27 +343,25 @@ class Image2GraphDataset(torch.utils.data.Dataset):
                     images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
                 elif dataset_name == 'cifar10':
                     # N * C * H * W
-                    images = TF.rotate(torch.from_numpy(images).permute(0,3,1,2), rotated_angle, expand=False)
-                    images = images.permute(0,2,3,1)
+                    images = TF.rotate(torch.from_numpy(images).permute(0, 3, 1, 2), rotated_angle, expand=False)
+                    images = images.permute(0, 2, 3, 1)
                 elif dataset_name == 'fashionmnist':
                     images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
                 else:
                     raise Exception("Unknown dataset")
-                
+
                 images = images.numpy()
 
         n_images = len(images)
-        
+
         with mp.Pool() as pool:
             self.sp_data = pool.map(
                 process_image, [(images[i], n_sp, compactness, True, i, dataset_name) for i in range(n_images)])
-            
+
         # self.sp_data = []
         # for i in range(n_images):
-        #     self.sp_data.append(process_image((images[i], n_sp, compactness, True, i, dataset_name)))            
-            
-            
-            
+        #     self.sp_data.append(process_image((images[i], n_sp, compactness, True, i, dataset_name)))
+
         self.graph_labels = torch.LongTensor(labels)
 
         self.use_mean_px = use_mean_px

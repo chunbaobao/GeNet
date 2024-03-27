@@ -60,8 +60,8 @@ class BasicBlock(nn.Module):
                                             F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, planes//4, planes//4), "constant", 0))
             elif option == 'B':
                 self.shortcut = nn.Sequential(
-                     nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
-                     nn.BatchNorm2d(self.expansion * planes)
+                    nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
+                    nn.BatchNorm2d(self.expansion * planes)
                 )
 
     def forward(self, x):
@@ -70,7 +70,6 @@ class BasicBlock(nn.Module):
         out += self.shortcut(x)
         out = F.relu(out)
         return out
-    
 
 
 class ResNet_CIFAR10(nn.Module):
@@ -84,7 +83,6 @@ class ResNet_CIFAR10(nn.Module):
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
         self.linear = nn.Linear(64, num_classes)
-
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -106,13 +104,13 @@ class ResNet_CIFAR10(nn.Module):
             out = self.channel(out)
         out = self.linear(out)
         return out
-    
+
     def set_channel(self, snr=None):
         if snr is None:
             self.channel = None
         else:
             self.channel = channel.Channel(snr)
-            
+
     def loss(self, pred, label):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, label)
@@ -131,7 +129,7 @@ class ResidualBlock(nn.Module):
         y = F.relu(self.bn(self.conv1(x)))
         y = self.bn(self.conv1(y))
 
-        return F.relu(x + y)  
+        return F.relu(x + y)
 
 
 class ResNet_MNIST(nn.Module):
@@ -152,7 +150,6 @@ class ResNet_MNIST(nn.Module):
         else:
             self.channel = channel.Channel(snr)
 
-
     def forward(self, x):
         batch_size = x.size(0)
 
@@ -168,24 +165,25 @@ class ResNet_MNIST(nn.Module):
         x = self.fc(x)
 
         return x
-    
+
     def loss(self, pred, label):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, label)
         return loss
+
 
 class ResNet_FashionMNIST(nn.Module):
     def __init__(self):
         super().__init__()
         self.resnet = models.resnet18(num_classes=10)
         self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(2, 2), padding=(3, 3), bias=False)
-        
+
     def set_channel(self, snr=None):
         if snr is None:
             self.channel = None
         else:
             self.channel = channel.Channel(snr)
-            
+
     def forward(self, x):
         x = self.resnet.conv1(x)
         x = self.resnet.bn1(x)
@@ -201,22 +199,23 @@ class ResNet_FashionMNIST(nn.Module):
             x = self.channel(x)
         x = self.resnet.fc(x)
         return x
-    
+
     def loss(self, pred, label):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, label)
         return loss
 
+
 def resnet_cifar10():
     return ResNet_CIFAR10(BasicBlock, [3, 3, 3])
+
 
 def resnet_mnist():
     return ResNet_MNIST()
 
+
 def resnet_fashionmnist():
     return ResNet_FashionMNIST()
-
-
 
 
 if __name__ == '__main__':
@@ -231,9 +230,9 @@ if __name__ == '__main__':
             dataset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
         elif dataset_name == 'fashionmnist':
             model = resnet_fashionmnist()
-            dataset = datasets.FashionMNIST(root='../dataset', train=False, download=False, 
+            dataset = datasets.FashionMNIST(root='../dataset', train=False, download=False,
                                             transform=transforms.ToTensor())
-        
+
         model.load_state_dict(torch.load('./models/resnet_{}.pth'.format(dataset_name)))
         model.set_channel(snr)
         dataloader = DataLoader(dataset, batch_size=32, shuffle=False)

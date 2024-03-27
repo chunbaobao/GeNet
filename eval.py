@@ -15,6 +15,7 @@ import multiprocessing as mp
 import numpy as np
 from utils import gpu_setup
 
+
 def evaluate_baseline(model, device, test_loader):
     # baseline model does not need to set eval mode!!!
     correct = 0
@@ -33,7 +34,7 @@ def evaluate_baseline(model, device, test_loader):
 
 
 class PaintedDateSet(Dataset):
-    def __init__(self, dataset_name, rotated_angle = 0, is_plot = False):
+    def __init__(self, dataset_name, rotated_angle=0, is_plot=False):
         data_path = '../dataset'
         if dataset_name == 'mnist':
             self.img_size = 28
@@ -67,40 +68,36 @@ class PaintedDateSet(Dataset):
                 images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
             elif dataset_name == 'cifar10':
                 # N * C * H * W
-                images = TF.rotate(torch.from_numpy(images).permute(0,3,1,2), rotated_angle, expand=False)
-                images = images.permute(0,2,3,1)
+                images = TF.rotate(torch.from_numpy(images).permute(0, 3, 1, 2), rotated_angle, expand=False)
+                images = images.permute(0, 2, 3, 1)
             elif dataset_name == 'fashionmnist':
                 images = TF.rotate(torch.from_numpy(images), rotated_angle, expand=False)
             else:
                 raise Exception("Unknown dataset")
-            
+
             images = images.numpy()
-            
+
         n_images = len(images)
         with mp.Pool() as pool:
-           sp_data = pool.map(
+            sp_data = pool.map(
                 process_image, [(images[i], n_sp, compactness, False, i, dataset_name) for i in range(n_images)])
 
         # sp_data = []
         # for i in range(n_images):
         #     sp_data.append(process_image((images[i], n_sp, compactness, False, i, dataset_name)))
-           
-           
+
         self.painted_imgs = []
         self.labels = labels
         for idx, (sp_intensity, _, sp_order, superpixels) in enumerate(sp_data):
-            painted_img = np.zeros_like(images[idx], dtype=np.float32) # H * W (* C)
+            painted_img = np.zeros_like(images[idx], dtype=np.float32)  # H * W (* C)
             for seg in sp_order:
                 mask = (superpixels == seg)
                 painted_img[mask] = sp_intensity[seg]
-            painted_img = painted_img[:,:,None] if painted_img.ndim == 2 else painted_img # H * W * C
+            painted_img = painted_img[:, :, None] if painted_img.ndim == 2 else painted_img  # H * W * C
             painted_img = torch.from_numpy(painted_img)
-            painted_img = painted_img.permute((2, 0, 1)) #　C * H * W
+            painted_img = painted_img.permute((2, 0, 1))  # 　C * H * W
             self.painted_imgs.append(painted_img)
 
-  
-        
-            
     def __len__(self):
         """Return the number of graphs in the dataset."""
         return len(self.labels)
@@ -111,7 +108,6 @@ class PaintedDateSet(Dataset):
             Parameters
         """
         return self.painted_imgs[idx], self.labels[idx]
-            
 
 
 def eval_model(device):
@@ -135,12 +131,12 @@ def eval_model(device):
         dataset_name = config['dataset_name']
         params = config['params']
         net_params['device'] = device
-        
+
     # load model
     model = GeNet(model_name, net_params)
     model.to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
-    
+
     # # for snr
     print('evaluating snr...')
     testset = TestDataset(dataset_name).test
@@ -149,21 +145,20 @@ def eval_model(device):
     if not os.path.exists('./out/eval/snr'):
         os.makedirs('./out/eval/snr')
     writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+                           format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
     for snr in range(-50, 31, 1):
         model.set_channel(snr)
         test_loss, test_acc = evaluate_network(model, device, test_loader)
         writer.add_scalar('test_loss/snr', test_loss, snr)
         writer.add_scalar('test_acc/snr', test_acc, snr)
     writer.close()
-    
-    
+
     # for rotation
     print('evaluating rotation...')
     if not os.path.exists('./out/eval/rotation'):
         os.makedirs('./out/eval/rotation')
     writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+                           format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
     for rotation in range(0, 360, 1):
         testset = TestDataset(dataset_name, rotation).test
         test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
@@ -172,15 +167,15 @@ def eval_model(device):
         writer.add_scalar('test_loss/rotation', test_loss, rotation)
         writer.add_scalar('test_acc/rotation', test_acc, rotation)
         del testset, test_loader
-        gc.collect() 
+        gc.collect()
     writer.close()
-    
+
     # for cross experiment on snr and n_sp
     print('evaluating cross experiment on snr and n_sp...')
     if not os.path.exists('./out/eval/cross'):
         os.makedirs('./out/eval/cross')
     writer = SummaryWriter(log_dir='./out/eval/cross/{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
+                           format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')))
     for snr in range(-30, 21, 10):
         if dataset_name == 'mnist':
             n_sp_range = range(20, 91, 3)
@@ -191,65 +186,59 @@ def eval_model(device):
         else:
             raise Exception('Invalid dataset name')
         for n_sp in n_sp_range:
-            testset = TestDataset(dataset_name, n_sp_test = n_sp).test
-            test_loader = DataLoader(testset, batch_size=params['batch_size'], shuffle=False, collate_fn=testset.collate)
+            testset = TestDataset(dataset_name, n_sp_test=n_sp).test
+            test_loader = DataLoader(testset, batch_size=params['batch_size'],
+                                     shuffle=False, collate_fn=testset.collate)
             model.set_channel(snr)
             test_loss, test_acc = evaluate_network(model, device, test_loader)
             writer.add_scalar('test_loss/n_sp_{}'.format(snr), test_loss, n_sp)
             writer.add_scalar('test_acc/n_sp_{}'.format(snr), test_acc, n_sp)
             del testset, test_loader
-            gc.collect() 
+            gc.collect()
     writer.close()
-        
-        
-        
 
-        
 
-def eval_baseline(device, dataset_name, is_paint = True):
+def eval_baseline(device, dataset_name, is_paint=True):
     print('evaluating baseline model on {} dataset, is_paint: {}'.format(dataset_name, is_paint))
-    
+
     # load model
     model_name = 'resnet'
     model = load_baseline(dataset_name)
     model.to(device)
-    
-    
+
     # for snr
     print('evaluating snr...')
     if not os.path.exists('./out/eval/snr'):
         os.makedirs('./out/eval/snr')
     writer = SummaryWriter(log_dir='./out/eval/snr/{}_{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y'), is_paint))
+                           format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y'), is_paint))
     if is_paint:
         testset = PaintedDateSet(dataset_name)
-        
+
     else:
         if dataset_name == 'mnist':
             testset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
         elif dataset_name == 'cifar10':
             testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transforms.ToTensor())
         elif dataset_name == 'fashionmnist':
-            testset = datasets.FashionMNIST(root='../dataset', train=False, download=False, 
+            testset = datasets.FashionMNIST(root='../dataset', train=False, download=False,
                                             transform=transforms.ToTensor())
         else:
             raise Exception('Invalid dataset name')
-            
-        
+
     for snr in range(-50, 31, 1):
-        test_loader = DataLoader(testset, batch_size=16, shuffle=False)   
+        test_loader = DataLoader(testset, batch_size=16, shuffle=False)
         model.set_channel(snr)
         test_acc = evaluate_baseline(model, device, test_loader)
         writer.add_scalar('test_acc/snr', test_acc, snr)
     writer.close()
-    
-    
+
     # for rotation
     print('evaluating rotation...')
     if not os.path.exists('./out/eval/rotation'):
         os.makedirs('./out/eval/rotation')
     writer = SummaryWriter(log_dir='./out/eval/rotation/{}_{}_{}_{}'.
-                            format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y'), is_paint))
+                           format(model_name, dataset_name, time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y'), is_paint))
     for rotation in range(0, 360, 1):
         if is_paint:
             testset = PaintedDateSet(dataset_name, rotation)
@@ -258,13 +247,13 @@ def eval_baseline(device, dataset_name, is_paint = True):
             if dataset_name == 'mnist':
                 testset = datasets.MNIST(root='../dataset', train=False, download=False, transform=transform)
             elif dataset_name == 'cifar10':
-                testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transform)       
+                testset = datasets.CIFAR10(root='../dataset', train=False, download=False, transform=transform)
             elif dataset_name == 'fashionmnist':
                 testset = datasets.FashionMNIST(root='../dataset', train=False, download=False, transform=transform)
             else:
-                raise Exception('Invalid dataset name')     
+                raise Exception('Invalid dataset name')
 
-        test_loader = DataLoader(testset, batch_size=16, shuffle=False)   
+        test_loader = DataLoader(testset, batch_size=16, shuffle=False)
         model.set_channel(None)
         test_acc = evaluate_baseline(model, device, test_loader)
         writer.add_scalar('test_acc/rotation', test_acc, rotation)
@@ -280,12 +269,12 @@ def main():
     #     device = gpu_setup(True, 0)
     # else:
     #     device = gpu_setup(False, 0)
-    
+
     device = gpu_setup(True, 0)
-        
-    # for GNN models    
+
+    # for GNN models
     eval_model(device)
-    
+
     # for baseline models
     # # for dataset_name in ['mnist', 'cifar10']:
     # for dataset_name in ['fashionmnist']:

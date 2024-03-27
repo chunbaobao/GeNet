@@ -9,7 +9,7 @@ class Channel(nn.Module):
         self.snr = snr
 
     def forward(self, graph_or_tensor):
-        
+
         if isinstance(graph_or_tensor, dgl.DGLGraph):
             # z_hat : (num_nodes, feature_dim)
             z_hat = graph_or_tensor.ndata['h']
@@ -30,10 +30,9 @@ class Channel(nn.Module):
         else:
             raise Exception('Unknown Type: {}'.format(type(graph_or_tensor)))
 
-
         # return z_hat + noise
-        
-        
+
+
 if __name__ == '__main__':
     # test
     import dgl
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     for batched_graph, labels in dataloader:
         batched_graph.ndata['h'] = torch.randn(batched_graph.num_nodes(), 5)
         print(batched_graph)
-        
+
         batched_graph = channel(batched_graph)
         print(batched_graph)
         break
