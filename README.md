@@ -4,9 +4,9 @@ This repo is the implementation of the paper "GeNet: A Graph Neural Network-base
 Task-Oriented Semantic Communication Paradigm" using PyTorch.
 ### Architecture
 General semantic communication paradigm:
-![conv](./demo/conv.pdf)
+![conv](./demo/conv.png)
 GeNet semantic communication paradigm:
-![pipeline](./demo/pipeline.pdf)
+![pipeline](./demo/pipeline.png)
 
 
 
