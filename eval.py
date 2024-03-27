@@ -274,12 +274,14 @@ def eval_baseline(device, dataset_name, is_paint = True):
 
 
 def main():
-    if torch.cuda.device_count() > 1:
-        device = gpu_setup(True, 1)
-    elif torch.cuda.is_available():
-        device = gpu_setup(True, 0)
-    else:
-        device = gpu_setup(False, 0)
+    # if torch.cuda.device_count() > 1:
+    #     device = gpu_setup(True, 1)
+    # elif torch.cuda.is_available():
+    #     device = gpu_setup(True, 0)
+    # else:
+    #     device = gpu_setup(False, 0)
+    
+    device = gpu_setup(True, 0)
         
     # for GNN models    
     eval_model(device)

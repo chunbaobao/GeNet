@@ -365,12 +365,14 @@ def train_pipeline(model_name, dataset_name, params):
 def main():
     args = config_parser()
 
-    if torch.cuda.device_count() > 1:
-        device = gpu_setup(True, 1)
-    elif torch.cuda.is_available():
-        device = gpu_setup(True, 0)
-    else:
-        device = gpu_setup(False, 0)
+    # if torch.cuda.device_count() > 1:
+    #     device = gpu_setup(True, 1)
+    # elif torch.cuda.is_available():
+    #     device = gpu_setup(True, 0)
+    # else:
+    #     device = gpu_setup(False, 0)
+    
+    device = gpu_setup(True, 0)
 
     models = ['MLP', 'GAT', 'GatedGCN', 'GCN']
     datasets = ['cifar10', 'mnist']
