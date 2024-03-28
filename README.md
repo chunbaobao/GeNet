@@ -1,7 +1,7 @@
 # GeNet
 
 This repo is the implementation of the paper "GeNet: A Graph Neural Network-based Anti-noise
-Task-Oriented Semantic Communication Paradigm" (arxiv link: TBD) using PyTorch.
+Task-Oriented Semantic Communication Paradigm": https://arxiv.org/abs/2403.18296.
 ### Architecture
 General semantic communication paradigm:
 ![conv](./demo/conv.png)
